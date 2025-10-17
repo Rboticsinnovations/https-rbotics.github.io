@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Rbotics Innovations</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="header-top">
+    <a href="#home" class="logo">
+  <img src="images/name1.png" alt="Rbotics Innovations Logo" />
+</a>
+
+    <!-- Search Bar -->
+    <form class="search-bar" action="#" method="get">
+      <input type="text" placeholder="Search..." name="query" />
+    </form>
+
+    <!-- Navigation Links -->
+    <nav class="header-nav">
+      <ul>
+        <li><a href="#">Home</a></li>
+        <li class="dropdown">
+          <a href="#" class="dropbtn">Products</a>
+          <div class="dropdown-content">
+            <!--<a href="#">Basic Components</a>
+            <a href="#">Sensors</a>
+            <a href="#">Thrusters</a>
+            <a href="#">Lights</a>
+            <a href="#">Penetrators</a>
+            <a href="#">Enclosures</a> -->
+          </div>
+        </li>
+         <!-- Services -->
+        <li><a href="#" id="servicesLink">Services</a></li>
+        <li><a href="#" id="aboutLink">About</a></li>
+        <li><a href="#contact">Contact</a></li>
+      </ul>
+    </nav>
+
+    <!-- Icons Section -->
+    <div class="header-icons">
+      <!-- User Icon with Dropdown -->
+      <div class="user-dropdown">
+        <img src="https://img.icons8.com/ios-filled/24/user.png" alt="User" class="user-icon" onclick="toggleDropdown()" />
+        <div class="dropdown-menu" id="userDropdown">
+          <a href="#">Login</a>
+          <a href="#">Register</a>
+        </div>
+      </div>
+
+      <!-- Cart Icon with Count -->
+      <div class="cart">
+        <img src="https://img.icons8.com/ios-filled/24/shopping-cart.png" alt="Cart" />
+        <span class="cart-count">0</span>
+      </div>
+    </div>
+  </header>
+ 
+  <!-- Main Content -->
+  <main id="home">
+    <section class="hero">
+      <div class="hero-content">
+        <h2>Explore more. Build smarter. Move anywhere.</h2>
+       <!-- <div class="hero-buttons">
+          <a href="#" class="hero-btn">Explore BlueBoat</a>
+          <a href="#" class="hero-btn">Explore Components</a>
+        </div> -->
+      </div>
+    </section>
+
+    <section id="services" style="display: none;">
+      <h2>Our Services</h2>
+      <div class="services-container">
+        <div class="service-card">
+          <h3>CNC Machining</h3>
+          <p>High-precision CNC machining with tolerance up to <strong>±0.05mm</strong> for complex parts.</p>
+        </div>
+        <div class="service-card">
+          <h3>Drilling Services</h3>
+          <p>Accurate and clean drilling for various materials and diameters with <strong>±0.05mm</strong> precision.</p>
+        </div>
+        <div class="service-card">
+          <h3>Custom Fabrication</h3>
+          <p>Customized mechanical components designed and manufactured to your requirements.</p>
+        </div>
+        <div class="service-card">
+          <h3>Design Assistance</h3>
+          <p>CAD-based design support and prototyping for mechanical systems and assemblies.</p>
+        </div>
+        <div class="service-card">
+          <h3>PCB Designing, Manufacturing</h3>
+          <p>PCB layout, Designing, Fabricaton & Assembly.</p>
+        </div>
+        <div class="service-card">
+          <h3>Li-ion battery packs</h3>
+          <p>Customised 3.7V to 72V li-ion batteries designing and fabrication.</p>
+        </div>
+      </div>
+    </section>    
+
+    <section id="about" class="about-section" style="display: none;">
+      <div class="about-wrapper">
+        <h2><span class="highlight">About Us</span></h2>
+        <p>
+          <strong>Rbotics Innovations Pvt. Ltd.</strong> is a forward-thinking technology company building solutions across <strong>marine</strong>, <strong>aerial</strong>, and <strong>ground platforms</strong>. 
+          We specialize in developing unmanned systems, cutting-edge electronics, and offer complete solutions for both industrial and defense sectors.
+        </p>
+    
+        <p>
+          Our expertise includes custom <strong>Li-ion battery design</strong>, <strong>PCB layout & assembly</strong>, and full-scale <strong>robotic system development</strong>—from ROVs and UAVs to rugged ground vehicles.
+        </p>
+    
+        <p>
+          With a strong commitment to indigenous innovation, we aim to serve the Indian <strong>Navy, Air Force, and Military</strong> with scalable, reliable, and high-performance technology.
+        </p>
+    
+        <h3><i class="fas fa-cogs"></i> What We Do</h3>
+        <ul class="about-list">
+          <li><strong>Marine Systems:</strong> ROVs, thrusters, leak detection, depth control, underwater communication</li>
+          <li><strong>Aerial Platforms:</strong> Custom UAVs for mapping, surveillance, and autonomous flight</li>
+          <li><strong>Ground Vehicles:</strong> Land robots for inspection, mobility, and payload operations</li>
+          <li><strong>Battery Technology:</strong> Li-ion packs (3.7V – 72V) for robotics and high-drain systems</li>
+          <li><strong>Electronics:</strong> PCB design, embedded systems, layout, fabrication & assembly</li>
+          <li><strong>System Integration:</strong> End-to-end integration of mechanical, electrical & software systems</li>
+        </ul>
+    
+        <h3><i class="fas fa-bullseye"></i> Our Vision</h3>
+        <p class="vision-text">
+          To be a trusted defense technology partner by delivering indigenous, innovative unmanned solutions for India’s strategic sectors.
+        </p>
+      </div>
+    </section>
+    
+   
+    
+    <section id="contact" class="contact-section" style="display: none;">
+      <div class="contact-wrapper">
+        <div class="contact-title">
+          <h2>Our Location</h2>
+        </div>
+        <div class="contact-details">
+          <p><strong>Address:</strong> Ayyakoneru East Bund, Vizianagaram, Andhra Pradesh, India</p>
+          <p><strong>Phone:</strong> <a href="tel:+91 99512 56658">+91 99512 56658</a></p>
+          <p><strong>Email:</strong> <a href="mailto:santosh@rbotics.in">santosh@rbotics.in</a></p>
+          <p><strong>Working Hours:</strong> Mon–Fri, 9:00 AM – 6:00 PM</p>
+          <p style="color: rgb(250, 130, 130); font-size: 0.9em;">*Except government holidays</p>
+        </div>
+    
+        <!-- Social Icons to Right -->
+        <div class="contact-social">
+          <a href="https://instagram.com" target="_blank">
+            <img src="https://img.icons8.com/color/48/instagram-new--v1.png" alt="Instagram" />
+          </a>
+          <a href="https://linkedin.com" target="_blank">
+            <img src="https://img.icons8.com/color/48/linkedin-circled--v1.png" alt="LinkedIn" />
+          </a>
+        </div>
+        
+      </div>
+    </section>
+    
+    
+
+  </main>
+    
+  <!-- Footer -->
+  <footer>
+    <p>&copy; 2025 Rbotics Innovations. All rights reserved.</p>
+  </footer>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const aboutLink = document.querySelector('#aboutLink');
+      const contactLink = document.querySelector('a[href="#contact"]');
+      const servicesLink = document.querySelector('#servicesLink');
+      const homeLink = document.querySelector('a[href="#"]');
+
+      const aboutSection = document.getElementById("about");
+      const contactSection = document.getElementById("contact");
+      const servicesSection = document.getElementById("services");
+      const homeSection = document.getElementById("home");
+
+      const dropdownMenu = document.getElementById("userDropdown");
+      const userIcon = document.querySelector(".user-icon");
+    
+      // Function to hide all sections
+      function hideAllSections() {
+        aboutSection.style.display = "none";
+        contactSection.style.display = "none";
+        servicesSection.style.display = "none";
+      }
+    
+      // Show About
+      aboutLink.addEventListener("click", (e) => {
+        e.preventDefault();
+        hideAllSections();
+        aboutSection.style.display = "block";
+        aboutSection.scrollIntoView({ behavior: "smooth" });
+      });
+    
+      // Show Contact
+      contactLink.addEventListener("click", (e) => {
+        e.preventDefault();
+        hideAllSections();
+        contactSection.style.display = "block";
+        contactSection.scrollIntoView({ behavior: "smooth" });
+      });
+
+      // Show Services
+      servicesLink.addEventListener("click", (e) => {
+        e.preventDefault();
+        hideAllSections();
+        servicesSection.style.display = "block";
+        servicesSection.scrollIntoView({ behavior: "smooth" });
+      });
+    
+      // Show Home
+      homeLink.addEventListener("click", (e) => {
+        e.preventDefault();
+        hideAllSections();
+        homeSection.scrollIntoView({ behavior: "smooth" });
+      });
+    
+      // User Icon Toggle
+      userIcon.addEventListener("click", (e) => {
+        e.stopPropagation();
+        dropdownMenu.style.display = dropdownMenu.style.display === "block" ? "none" : "block";
+      });
+    
+      // Hide user dropdown if clicked outside
+      window.addEventListener("click", (e) => {
+        if (!dropdownMenu.contains(e.target) && e.target !== userIcon) {
+          dropdownMenu.style.display = "none";
+        }
+      });
+    });
+
+    // Toggle Login/Register Modal
+function toggleModal() {
+  const modal = document.getElementById("authModal");
+  modal.style.display = modal.style.display === "block" ? "none" : "block";
+}
+
+// Show modal when user icon clicked
+document.querySelector('.user-icon').addEventListener('click', (e) => {
+  e.stopPropagation(); // prevent bubble
+  toggleModal();
+});
+
+// Close modal when clicking outside
+window.addEventListener("click", (e) => {
+  const modal = document.getElementById("authModal");
+  if (e.target === modal) {
+    modal.style.display = "none";
+  }
+});
+
+    </script>
+    
+</body>
+</html>
