@@ -1,272 +1,422 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Rbotics Innovations</title>
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Montserrat:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
+
 <body>
 
   <!-- Header -->
   <header class="header-top">
-    <a href="#home" class="logo">
-  <img src="Images/logo3.jpg" alt="Rbotics Innovations Logo" />
-</a>
+    <!-- Single Row: Logo + Search + Nav + Icons -->
+    <div class="header-row">
+      <a href="#home" class="logo">
+        <img src="Images/LogoName.png" alt="Rbotics Innovations Logo" />
+      </a>
 
-    <!-- Search Bar -->
-    <form class="search-bar" action="#" method="get">
-      <input type="text" placeholder="Search..." name="query" />
-    </form>
+      <form class="search-bar" action="#" method="get">
+        <input type="text" placeholder="Search..." name="query" />
+      </form>
 
-    <!-- Navigation Links -->
-    <nav class="header-nav">
-      <ul>
-        <li><a href="#">Home</a></li>
-        <li class="dropdown">
-          <a href="#" class="dropbtn">Products</a>
-          <div class="dropdown-content">
-            <!--<a href="#">Basic Components</a>
-            <a href="#">Sensors</a>
-            <a href="#">Thrusters</a>
-            <a href="#">Lights</a>
-            <a href="#">Penetrators</a>
-            <a href="#">Enclosures</a> -->
+      <nav class="header-nav">
+        <ul>
+          <li><a href="#home">Home</a></li>
+          <li class="dropdown">
+            <a href="#" class="dropbtn">Products</a>
+            <div class="dropdown-content"></div>
+          </li>
+          <li><a href="#services">Services</a></li>
+          <li><a href="#about">About</a></li>
+          <li><a href="#contact">Contact</a></li>
+        </ul>
+      </nav>
+
+      <div class="header-icons">
+        <div class="user-dropdown">
+          <img src="https://img.icons8.com/ios-filled/24/user.png" alt="User" class="user-icon"
+            onclick="toggleDropdown()" />
+          <div class="dropdown-menu" id="userDropdown">
+            <a href="#">Login</a>
+            <a href="#">Register</a>
           </div>
-        </li>
-         <!-- Services -->
-        <li><a href="#" id="servicesLink">Services</a></li>
-        <li><a href="#" id="aboutLink">About</a></li>
-        <li><a href="#contact">Contact</a></li>
-      </ul>
-    </nav>
-
-    <!-- Icons Section -->
-    <div class="header-icons">
-      <!-- User Icon with Dropdown -->
-      <div class="user-dropdown">
-        <img src="https://img.icons8.com/ios-filled/24/user.png" alt="User" class="user-icon" onclick="toggleDropdown()" />
-        <div class="dropdown-menu" id="userDropdown">
-          <a href="#">Login</a>
-          <a href="#">Register</a>
         </div>
       </div>
 
-      <!-- Cart Icon with Count -->
+
       <div class="cart">
         <img src="https://img.icons8.com/ios-filled/24/shopping-cart.png" alt="Cart" />
         <span class="cart-count">0</span>
       </div>
     </div>
+    </div>
   </header>
- 
+
   <!-- Main Content -->
   <main id="home">
     <section class="hero">
       <div class="hero-content">
-        <h2>Explore more. Build smarter. Move anywhere.</h2>
-       <!-- <div class="hero-buttons">
-          <a href="#" class="hero-btn">Explore BlueBoat</a>
-          <a href="#" class="hero-btn">Explore Components</a>
-        </div> -->
+        <h2 class="hero-title">Explore more. Build smarter. Move anywhere.</h2>
+        <div class="hero-subtitle">Advanced Robotics Solutions for Modern Challenges</div>
+      </div>
+      <div class="scroll-indicator">
+        <div class="scroll-arrow"></div>
       </div>
     </section>
 
-    <section id="services" style="display: none;">
-      <h2>Our Services</h2>
+    <section id="services" class="scroll-animate">
+      <div class="section-header">
+        <h2 class="section-title">Our Services</h2>
+        <p class="section-subtitle">Comprehensive solutions for your robotics and automation needs</p>
+      </div>
       <div class="services-container">
         <div class="service-card">
+          <div class="service-icon">
+            <i class="fas fa-cogs"></i>
+          </div>
           <h3>CNC Machining</h3>
           <p>High-precision CNC machining with tolerance up to <strong>±0.05mm</strong> for complex parts.</p>
+          <button class="card-button">Learn More</button>
         </div>
         <div class="service-card">
+          <div class="service-icon">
+            <i class="fas fa-tools"></i>
+          </div>
           <h3>Drilling Services</h3>
-          <p>Accurate and clean drilling for various materials and diameters with <strong>±0.05mm</strong> precision.</p>
+          <p>Accurate and clean drilling for various materials and diameters with <strong>±0.05mm</strong> precision.
+          </p>
+          <button class="card-button">Learn More</button>
         </div>
         <div class="service-card">
+          <div class="service-icon">
+            <i class="fas fa-industry"></i>
+          </div>
           <h3>Custom Fabrication</h3>
           <p>Customized mechanical components designed and manufactured to your requirements.</p>
+          <button class="card-button">Learn More</button>
         </div>
         <div class="service-card">
+          <div class="service-icon">
+            <i class="fas fa-drafting-compass"></i>
+          </div>
           <h3>Design Assistance</h3>
           <p>CAD-based design support and prototyping for mechanical systems and assemblies.</p>
+          <button class="card-button">Learn More</button>
         </div>
         <div class="service-card">
+          <div class="service-icon">
+            <i class="fas fa-microchip"></i>
+          </div>
           <h3>PCB Designing, Manufacturing</h3>
           <p>PCB layout, Designing, Fabricaton & Assembly.</p>
+          <button class="card-button">Learn More</button>
         </div>
         <div class="service-card">
+          <div class="service-icon">
+            <i class="fas fa-battery-full"></i>
+          </div>
           <h3>Li-ion battery packs</h3>
           <p>Customised 3.7V to 72V li-ion batteries designing and fabrication.</p>
+          <button class="card-button">Learn More</button>
         </div>
-      </div>
-    </section>    
-
-    <section id="about" class="about-section" style="display: none;">
-      <div class="about-wrapper">
-        <h2><span class="highlight">About Us</span></h2>
-        <p>
-          <strong>Rbotics Innovations Pvt. Ltd.</strong> is a forward-thinking technology company building solutions across <strong>marine</strong>, <strong>aerial</strong>, and <strong>ground platforms</strong>. 
-          We specialize in developing unmanned systems, cutting-edge electronics, and offer complete solutions for both industrial and defense sectors.
-        </p>
-    
-        <p>
-          Our expertise includes custom <strong>Li-ion battery design</strong>, <strong>PCB layout & assembly</strong>, and full-scale <strong>robotic system development</strong>—from ROVs and UAVs to rugged ground vehicles.
-        </p>
-    
-        <p>
-          With a strong commitment to indigenous innovation, we aim to serve the Indian <strong>Navy, Air Force, and Military</strong> with scalable, reliable, and high-performance technology.
-        </p>
-    
-        <h3><i class="fas fa-cogs"></i> What We Do</h3>
-        <ul class="about-list">
-          <li><strong>Marine Systems:</strong> ROVs, thrusters, leak detection, depth control, underwater communication</li>
-          <li><strong>Aerial Platforms:</strong> Custom UAVs for mapping, surveillance, and autonomous flight</li>
-          <li><strong>Ground Vehicles:</strong> Land robots for inspection, mobility, and payload operations</li>
-          <li><strong>Battery Technology:</strong> Li-ion packs (3.7V – 72V) for robotics and high-drain systems</li>
-          <li><strong>Electronics:</strong> PCB design, embedded systems, layout, fabrication & assembly</li>
-          <li><strong>System Integration:</strong> End-to-end integration of mechanical, electrical & software systems</li>
-        </ul>
-    
-        <h3><i class="fas fa-bullseye"></i> Our Vision</h3>
-        <p class="vision-text">
-          To be a trusted defense technology partner by delivering indigenous, innovative unmanned solutions for India’s strategic sectors.
-        </p>
       </div>
     </section>
-    
-   
-    
-    <section id="contact" class="contact-section" style="display: none;">
-      <div class="contact-wrapper">
-        <div class="contact-title">
-          <h2>Our Location</h2>
+
+    <section id="about" class="scroll-animate">
+      <div class="about-container">
+        <div class="about-header">
+          <h2 class="section-title">About Us</h2>
+          <p class="section-subtitle">Pioneering Robotics Innovation Since 2020</p>
         </div>
-        <div class="contact-details">
-          <p><strong>Address:</strong> Ayyakoneru East Bund, Vizianagaram, Andhra Pradesh, India</p>
-          <p><strong>Phone:</strong> <a href="tel:+91 99512 56658">+91 99512 56658</a></p>
-          <p><strong>Email:</strong> <a href="mailto:santosh@rbotics.in">santosh@rbotics.in</a></p>
-          <p><strong>Working Hours:</strong> Mon–Fri, 9:00 AM – 6:00 PM</p>
-          <p style="color: rgb(250, 130, 130); font-size: 0.9em;">*Except government holidays</p>
+
+        <div class="about-content">
+          <div class="about-text">
+            <div class="text-block">
+              <h3>Our Story</h3>
+              <p>
+                <strong>Rbotics Innovations Pvt. Ltd.</strong> is a forward-thinking technology company building
+                solutions across <strong>marine</strong>, <strong>aerial</strong>, and <strong>ground
+                  platforms</strong>.
+                We specialize in developing unmanned systems, cutting-edge electronics, and offer complete solutions for
+                both industrial and defense sectors.
+              </p>
+            </div>
+
+            <div class="text-block">
+              <p>
+                Our expertise includes custom <strong>Li-ion battery design</strong>, <strong>PCB layout &
+                  assembly</strong>, and full-scale <strong>robotic system development</strong>—from ROVs and UAVs to
+                rugged ground vehicles.
+              </p>
+            </div>
+
+            <div class="text-block">
+              <p>
+                With a strong commitment to indigenous innovation, we aim to serve the Indian <strong>Navy, Air Force,
+                  and Military</strong> with scalable, reliable, and high-performance technology.
+              </p>
+            </div>
+          </div>
+
+          <div class="about-features">
+            <div class="features-container">
+              <div class="feature-box">
+                <h3><i class="fas fa-cogs"></i> What We Do</h3>
+                <ul class="feature-list">
+                  <li><strong>Marine Systems:</strong> ROVs, thrusters, leak detection, depth control, underwater
+                    communication</li>
+                  <li><strong>Aerial Platforms:</strong> Custom UAVs for mapping, surveillance, and autonomous flight
+                  </li>
+                  <li><strong>Ground Vehicles:</strong> Land robots for inspection, mobility, and payload operations
+                  </li>
+                  <li><strong>Battery Technology:</strong> Li-ion packs (3.7V – 72V) for robotics and high-drain systems
+                  </li>
+                  <li><strong>Electronics:</strong> PCB design, embedded systems, layout, fabrication & assembly</li>
+                  <li><strong>System Integration:</strong> End-to-end integration of mechanical, electrical & software
+                    systems</li>
+                </ul>
+              </div>
+
+              <div class="feature-box vision-box">
+                <h3><i class="fas fa-bullseye"></i> Our Vision</h3>
+                <p class="vision-text">
+                  To be a trusted defense technology partner by delivering indigenous, innovative unmanned solutions for
+                  India's strategic sectors.
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
-    
-        <!-- Social Icons to Right -->
-        <div class="contact-social">
-          <a href="https://instagram.com" target="_blank">
-            <img src="https://img.icons8.com/color/48/instagram-new--v1.png" alt="Instagram" />
-          </a>
-          <a href="https://linkedin.com" target="_blank">
-            <img src="https://img.icons8.com/color/48/linkedin-circled--v1.png" alt="LinkedIn" />
-          </a>
-        </div>
-        
       </div>
     </section>
-    
-    
 
+    <section id="contact" class="scroll-animate">
+      <div class="contact-container">
+        <div class="contact-header">
+          <h2 class="section-title">Our Location</h2>
+          <p class="section-subtitle">Get in touch with our team</p>
+        </div>
+
+        <div class="contact-content">
+          <div class="contact-info">
+            <div class="info-card">
+              <div class="info-icon">
+                <i class="fas fa-map-marker-alt"></i>
+              </div>
+              <div class="info-details">
+                <h3>Address</h3>
+                <p>Ayyakoneru East Bund, Vizianagaram, Andhra Pradesh, India-535002</p>
+              </div>
+            </div>
+
+            <div class="info-card">
+              <div class="info-icon">
+                <i class="fas fa-phone"></i>
+              </div>
+              <div class="info-details">
+                <h3>Phone</h3>
+                <p><a href="tel:+91 99512 56658">+91 99512 56658</a></p>
+              </div>
+            </div>
+
+            <div class="info-card">
+              <div class="info-icon">
+                <i class="fas fa-envelope"></i>
+              </div>
+              <div class="info-details">
+                <h3>Email</h3>
+                <p><a href="mailto:santosh@rbotics.in">santosh@rbotics.in</a></p>
+              </div>
+            </div>
+
+            <div class="info-card">
+              <div class="info-icon">
+                <i class="fas fa-clock"></i>
+              </div>
+              <div class="info-details">
+                <h3>Working Hours</h3>
+                <p>Mon–Fri, 9:00 AM – 6:00 PM</p>
+                <p class="note">*Except government holidays</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="contact-social">
+            <h3>Follow Us</h3>
+            <div class="social-icons">
+              <a href="https://instagram.com" target="_blank" class="social-link">
+                <i class="fab fa-instagram"></i>
+              </a>
+              <a href="https://linkedin.com" target="_blank" class="social-link">
+                <i class="fab fa-linkedin"></i>
+              </a>
+              <a href="https://twitter.com" target="_blank" class="social-link">
+                <i class="fab fa-twitter"></i>
+              </a>
+              <a href="https://facebook.com" target="_blank" class="social-link">
+                <i class="fab fa-facebook"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
   </main>
-    
+
   <!-- Footer -->
   <footer>
-    <p>&copy; 2025 Rbotics Innovations. All rights reserved.</p>
+    <div class="footer-content">
+      <div class="footer-copyright">
+        <p>&copy; 2025 Rbotics Innovations. All rights reserved.</p>
+      </div>
+    </div>
   </footer>
 
   <script>
     document.addEventListener("DOMContentLoaded", () => {
-      const aboutLink = document.querySelector('#aboutLink');
-      const contactLink = document.querySelector('a[href="#contact"]');
-      const servicesLink = document.querySelector('#servicesLink');
-      const homeLink = document.querySelector('a[href="#"]');
+      // Set up scroll animations
+      const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+      };
 
-      const aboutSection = document.getElementById("about");
-      const contactSection = document.getElementById("contact");
-      const servicesSection = document.getElementById("services");
-      const homeSection = document.getElementById("home");
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('active');
 
+            // If it's a service card, add staggered animation
+            if (entry.target.classList.contains('service-card')) {
+              const delay = Array.from(entry.target.parentNode.children).indexOf(entry.target) * 100;
+              entry.target.style.animationDelay = `${delay}ms`;
+            }
+
+            // If it's a text block, add staggered animation
+            if (entry.target.classList.contains('text-block')) {
+              const delay = Array.from(entry.target.parentNode.children).indexOf(entry.target) * 200;
+              entry.target.style.animationDelay = `${delay}ms`;
+            }
+
+            // If it's a feature box, add staggered animation
+            if (entry.target.classList.contains('feature-box')) {
+              const delay = Array.from(entry.target.parentNode.children).indexOf(entry.target) * 150;
+              entry.target.style.animationDelay = `${delay}ms`;
+            }
+
+            // If it's an info card, add staggered animation
+            if (entry.target.classList.contains('info-card')) {
+              const delay = Array.from(entry.target.parentNode.children).indexOf(entry.target) * 100;
+              entry.target.style.animationDelay = `${delay}ms`;
+            }
+          }
+        });
+      }, observerOptions);
+
+      // Observe all elements with scroll-animate class
+      document.querySelectorAll('.scroll-animate').forEach(el => {
+        observer.observe(el);
+      });
+
+      // Observe service cards
+      document.querySelectorAll('.service-card').forEach(card => {
+        observer.observe(card);
+      });
+
+      // Observe text blocks
+      document.querySelectorAll('.text-block').forEach(block => {
+        observer.observe(block);
+      });
+
+      // Observe feature boxes
+      document.querySelectorAll('.feature-box').forEach(box => {
+        observer.observe(box);
+      });
+
+      // Observe info cards
+      document.querySelectorAll('.info-card').forEach(card => {
+        observer.observe(card);
+      });
+
+      // Navigation click handlers
+      const navLinks = document.querySelectorAll('.header-nav a');
+
+      navLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+
+          const targetId = link.getAttribute('href');
+          const targetSection = document.querySelector(targetId);
+
+          if (targetSection) {
+            // Scroll to the target section with animation
+            targetSection.scrollIntoView({
+              behavior: 'smooth',
+              block: 'start'
+            });
+          }
+        });
+      });
+
+      // User dropdown functionality
       const dropdownMenu = document.getElementById("userDropdown");
       const userIcon = document.querySelector(".user-icon");
-    
-      // Function to hide all sections
-      function hideAllSections() {
-        aboutSection.style.display = "none";
-        contactSection.style.display = "none";
-        servicesSection.style.display = "none";
-      }
-    
-      // Show About
-      aboutLink.addEventListener("click", (e) => {
-        e.preventDefault();
-        hideAllSections();
-        aboutSection.style.display = "block";
-        aboutSection.scrollIntoView({ behavior: "smooth" });
-      });
-    
-      // Show Contact
-      contactLink.addEventListener("click", (e) => {
-        e.preventDefault();
-        hideAllSections();
-        contactSection.style.display = "block";
-        contactSection.scrollIntoView({ behavior: "smooth" });
-      });
 
-      // Show Services
-      servicesLink.addEventListener("click", (e) => {
-        e.preventDefault();
-        hideAllSections();
-        servicesSection.style.display = "block";
-        servicesSection.scrollIntoView({ behavior: "smooth" });
-      });
-    
-      // Show Home
-      homeLink.addEventListener("click", (e) => {
-        e.preventDefault();
-        hideAllSections();
-        homeSection.scrollIntoView({ behavior: "smooth" });
-      });
-    
-      // User Icon Toggle
+      function toggleDropdown() {
+        const dropdown = document.getElementById("userDropdown");
+        dropdown.style.display = dropdown.style.display === "flex" ? "none" : "flex";
+      }
+
       userIcon.addEventListener("click", (e) => {
         e.stopPropagation();
-        dropdownMenu.style.display = dropdownMenu.style.display === "block" ? "none" : "block";
+        toggleDropdown();
       });
-    
+
       // Hide user dropdown if clicked outside
       window.addEventListener("click", (e) => {
         if (!dropdownMenu.contains(e.target) && e.target !== userIcon) {
           dropdownMenu.style.display = "none";
         }
       });
+
+      // Add hover effect to service cards
+      document.querySelectorAll('.service-card').forEach(card => {
+        card.addEventListener('mouseenter', () => {
+          card.style.transform = 'translateY(-10px) scale(1.02)';
+        });
+
+        card.addEventListener('mouseleave', () => {
+          card.style.transform = 'translateY(0) scale(1)';
+        });
+      });
     });
 
     // Toggle Login/Register Modal
-function toggleModal() {
-  const modal = document.getElementById("authModal");
-  modal.style.display = modal.style.display === "block" ? "none" : "block";
-}
+    function toggleModal() {
+      const modal = document.getElementById("authModal");
+      modal.style.display = modal.style.display === "block" ? "none" : "block";
+    }
 
-// Show modal when user icon clicked
-document.querySelector('.user-icon').addEventListener('click', (e) => {
-  e.stopPropagation(); // prevent bubble
-  toggleModal();
-});
+    // Show modal when user icon clicked
+    document.querySelector('.user-icon').addEventListener('click', (e) => {
+      e.stopPropagation(); // prevent bubble
+      toggleModal();
+    });
 
-// Close modal when clicking outside
-window.addEventListener("click", (e) => {
-  const modal = document.getElementById("authModal");
-  if (e.target === modal) {
-    modal.style.display = "none";
-  }
-});
-
-    </script>
-    
+    // Close modal when clicking outside
+    window.addEventListener("click", (e) => {
+      const modal = document.getElementById("authModal");
+      if (e.target === modal) {
+        modal.style.display = "none";
+      }
+    });
+  </script>
 </body>
 
 </html>
-
-
-
-
-
-
