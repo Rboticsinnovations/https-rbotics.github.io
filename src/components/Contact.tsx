@@ -27,7 +27,7 @@ const Contact: React.FC = () => {
                                 <i className="fas fa-map-marker-alt text-primary mt-1 me-3 fs-5"></i>
                                 <div>
                                     <h5 className="fw-bold mb-1">Address</h5>
-                                    <p className="text-muted mb-0"> street, Tech City, India</p>
+                                    <p className="text-muted mb-0"> Ayyakonru east bund, Vizianagaram, Andhra Pradesh, India, 535002</p>
                                 </div>
                             </div>
 
