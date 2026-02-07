@@ -27,7 +27,7 @@ const Contact: React.FC = () => {
                                 <i className="fas fa-map-marker-alt text-primary mt-1 me-3 fs-5"></i>
                                 <div>
                                     <h5 className="fw-bold mb-1">Address</h5>
-                                    <p className="text-muted mb-0"> Ayyakonru east bund, Vizianagaram, Andhra Pradesh, India, 535002</p>
+                                    <p className="text-muted mb-0"> Ayyakoneru east bund, Vizianagaram, Andhrapradesh, India, 535002</p>
                                 </div>
                             </div>
 
@@ -35,7 +35,7 @@ const Contact: React.FC = () => {
                                 <i className="fas fa-phone-alt text-primary mt-1 me-3 fs-5"></i>
                                 <div>
                                     <h5 className="fw-bold mb-1">Phone</h5>
-                                    <p className="text-muted mb-0">+91 123 456 7890</p>
+                                    <p className="text-muted mb-0">+91 9951256658</p>
                                 </div>
                             </div>
 
@@ -43,7 +43,7 @@ const Contact: React.FC = () => {
                                 <i className="fas fa-envelope text-primary mt-1 me-3 fs-5"></i>
                                 <div>
                                     <h5 className="fw-bold mb-1">Email</h5>
-                                    <p className="text-muted mb-0">info@rboticsinnovations.com</p>
+                                    <p className="text-muted mb-0">santosh@rbotics.in</p>
                                 </div>
                             </div>
 
