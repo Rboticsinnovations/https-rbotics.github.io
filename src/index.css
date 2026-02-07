@@ -1,0 +1,91 @@
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Roboto', sans-serif;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 700;
+}
+
+.hero {
+  /* This class is handled in Hero.tsx with inline styles for background image, but we can add fallback or specific adjustments here if needed */
+}
+
+/* Service Card Hover Effect */
+.service-card {
+  height: 100%;
+  /* Ensure card takes full height of column */
+  transition: transform 0.3s ease-in-out;
+}
+
+.service-card:hover {
+  transform: translateY(-10px);
+}
+
+/* Scroll Animation classes */
+.fade-in-section {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+  will-change: opacity, visibility;
+}
+
+.fade-in-section.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+.animate-bounce {
+  animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+
+  0%,
+  20%,
+  50%,
+  80%,
+  100% {
+    transform: translateY(0);
+  }
+
+  40% {
+    transform: translateY(-10px);
+  }
+
+  60% {
+    transform: translateY(-5px);
+  }
+}
+
+/* Nav Link Custom Hover & Active */
+.nav-link-custom {
+  transition: color 0.3s;
+  position: relative;
+}
+
+.nav-link-custom:hover,
+.nav-link-custom.active {
+  color: #0d6efd !important;
+  /* Bootstrap primary color */
+}
+
+/* Optional: Add an underline indicator for active state */
+.nav-link-custom.active::after {
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: #0d6efd;
+}
