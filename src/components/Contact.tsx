@@ -34,7 +34,7 @@ const Contact: React.FC = () => {
                             <div className="d-flex mb-3 align-items-start">
                                 <i className="fas fa-phone-alt text-primary mt-1 me-3 fs-5"></i>
                                 <div>
-                                    <h5 className="fw-bold mb-1">Phone</h5>
+                                    <h5 className="fw-bold mb-1">Phone Number</h5>
                                     <p className="text-muted mb-0">+91 9951256658</p>
                                 </div>
                             </div>
