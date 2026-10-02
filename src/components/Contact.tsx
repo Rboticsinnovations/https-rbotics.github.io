@@ -1,10 +1,51 @@
-import React from 'react';
+import React, { useState } from 'react';
 import MotionWrapper from './MotionWrapper';
 
+interface ContactSubmission {
+    id: string;
+    name: string;
+    email: string;
+    mobile: string;
+    subject: string;
+    message: string;
+    submittedAt: string;
+}
+
 const Contact: React.FC = () => {
-    const handleSubmit = (e: React.FormEvent) => {
+    const [formData, setFormData] = useState({ name: '', email: '', mobile: '', subject: '', message: '' });
+    const [submitted, setSubmitted] = useState(false);
+    const [loading, setLoading] = useState(false);
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        alert("Thank you for your message! We will get back to you soon.");
+        setLoading(true);
+
+        await new Promise(r => setTimeout(r, 700));
+
+        const submission: ContactSubmission = {
+            id: `contact-${Date.now()}`,
+            name: formData.name,
+            email: formData.email,
+            mobile: formData.mobile,
+            subject: formData.subject,
+            message: formData.message,
+            submittedAt: new Date().toISOString(),
+        };
+
+        const existing = localStorage.getItem('rbotics_contact_submissions');
+        const all: ContactSubmission[] = existing ? JSON.parse(existing) : [];
+        all.push(submission);
+        localStorage.setItem('rbotics_contact_submissions', JSON.stringify(all));
+
+        setFormData({ name: '', email: '', mobile: '', subject: '', message: '' });
+        setSubmitted(true);
+        setLoading(false);
+
+        setTimeout(() => setSubmitted(false), 5000);
     };
 
     return (
@@ -50,10 +91,18 @@ const Contact: React.FC = () => {
                             <div className="mt-4">
                                 <h5 className="fw-bold mb-3">Follow Us</h5>
                                 <div className="d-flex gap-3">
-                                    <a href="#" className="btn btn-outline-primary rounded-circle"><i className="fab fa-facebook-f"></i></a>
-                                    <a href="#" className="btn btn-outline-primary rounded-circle"><i className="fab fa-twitter"></i></a>
-                                    <a href="#" className="btn btn-outline-primary rounded-circle"><i className="fab fa-linkedin-in"></i></a>
-                                    <a href="#" className="btn btn-outline-primary rounded-circle"><i className="fab fa-instagram"></i></a>
+                                    <a href="#" className="btn btn-outline-primary rounded-circle" aria-label="Facebook"><i className="fab fa-facebook-f"></i></a>
+                                    <a href="#" className="btn btn-outline-primary rounded-circle" aria-label="Twitter"><i className="fab fa-twitter"></i></a>
+                                    <a href="#" className="btn btn-outline-primary rounded-circle" aria-label="LinkedIn"><i className="fab fa-linkedin-in"></i></a>
+                                    <a 
+                                        href="https://www.instagram.com/rbotics_innovations?stkn=MW80cGc2N3A4aWRkaQ==" 
+                                        target="_blank" 
+                                        rel="noopener noreferrer" 
+                                        className="btn btn-outline-primary rounded-circle"
+                                        aria-label="Instagram"
+                                    >
+                                        <i className="fab fa-instagram"></i>
+                                    </a>
                                 </div>
                             </div>
                         </MotionWrapper>
@@ -63,26 +112,69 @@ const Contact: React.FC = () => {
                     <div className="col-md-7">
                         <MotionWrapper direction="left" delay={0.2}>
                             <div className="bg-white p-4 rounded shadow-sm">
+                                {submitted && (
+                                    <div className="alert alert-success d-flex align-items-center gap-2 mb-4" role="alert">
+                                        <i className="fas fa-check-circle fs-5"></i>
+                                        <div>
+                                            <strong>Message sent!</strong> Thank you for reaching out. We will get back to you soon.
+                                        </div>
+                                    </div>
+                                )}
                                 <form onSubmit={handleSubmit}>
                                     <div className="row g-3">
                                         <div className="col-md-6">
-                                            <label htmlFor="name" className="form-label">Name</label>
-                                            <input type="text" className="form-control" id="name" required />
+                                            <label htmlFor="contact-name" className="form-label">Name</label>
+                                            <input
+                                                type="text" className="form-control" id="contact-name"
+                                                name="name" value={formData.name} onChange={handleChange} required
+                                                placeholder="Your full name"
+                                            />
                                         </div>
                                         <div className="col-md-6">
-                                            <label htmlFor="email" className="form-label">Email</label>
-                                            <input type="email" className="form-control" id="email" required />
+                                            <label htmlFor="contact-email" className="form-label">Email</label>
+                                            <input
+                                                type="email" className="form-control" id="contact-email"
+                                                name="email" value={formData.email} onChange={handleChange} required
+                                                placeholder="you@example.com"
+                                            />
+                                        </div>
+                                        <div className="col-md-6">
+                                            <label htmlFor="contact-mobile" className="form-label">Mobile Number</label>
+                                            <input
+                                                type="tel" className="form-control" id="contact-mobile"
+                                                name="mobile" value={formData.mobile} onChange={handleChange} required
+                                                placeholder="+91 9876543210"
+                                                pattern="[+]?[0-9\s\-]{7,15}"
+                                            />
                                         </div>
                                         <div className="col-12">
-                                            <label htmlFor="subject" className="form-label">Subject</label>
-                                            <input type="text" className="form-control" id="subject" required />
+                                            <label htmlFor="contact-subject" className="form-label">Subject</label>
+                                            <input
+                                                type="text" className="form-control" id="contact-subject"
+                                                name="subject" value={formData.subject} onChange={handleChange} required
+                                                placeholder="What's this about?"
+                                            />
                                         </div>
                                         <div className="col-12">
-                                            <label htmlFor="message" className="form-label">Message</label>
-                                            <textarea className="form-control" id="message" rows={5} required></textarea>
+                                            <label htmlFor="contact-message" className="form-label">Message</label>
+                                            <textarea
+                                                className="form-control" id="contact-message"
+                                                name="message" value={formData.message} onChange={handleChange}
+                                                rows={5} required placeholder="Write your message here..."
+                                            ></textarea>
                                         </div>
                                         <div className="col-12">
-                                            <button type="submit" className="btn btn-primary px-4 py-2">Send Message</button>
+                                            <button
+                                                type="submit"
+                                                className="btn btn-primary px-4 py-2"
+                                                disabled={loading}
+                                            >
+                                                {loading ? (
+                                                    <><span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Sending…</>
+                                                ) : (
+                                                    <><i className="fas fa-paper-plane me-2"></i>Send Message</>
+                                                )}
+                                            </button>
                                         </div>
                                     </div>
                                 </form>
