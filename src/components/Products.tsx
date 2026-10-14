@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
     ALLOWED_CATEGORIES,
@@ -96,7 +97,10 @@ const LI_ION_PACK_TYPES = [
 type ViewStage = 'category_hub' | 'subcat_hub' | 'product_list' | 'product_detail';
 
 const Products: React.FC<ProductsProps> = ({ onRequestLogin, onOpenCart }) => {
-    const { isLoggedIn } = useAuth();
+    const { isLoggedIn, currentUser } = useAuth();
+    const location = useLocation();
+    
+    const cartKey = `rbotics_cart_${currentUser?.email || 'guest'}`;
 
     // Dynamic catalog loaded from localStorage (synced with Admin modifications)
     const [products, setProducts] = useState<ProductItem[]>(getProductsCatalog);
@@ -108,8 +112,8 @@ const Products: React.FC<ProductsProps> = ({ onRequestLogin, onOpenCart }) => {
     const [selectedSubSubCat, setSelectedSubSubCat] = useState<string>('1 Cell Li-Ion Battery Pack (3.6V~4.2V)');
     const [selectedProduct, setSelectedProduct] = useState<ProductItem | null>(null);
 
-    // Inventory refresh trigger
-    const [inventoryNonce, setInventoryNonce] = useState(0);
+    // Force re-render token when catalog updates or inventory changes
+    const [, setInventoryNonce] = useState(0);
 
     // Detail view state
     const [detailQty, setDetailQty] = useState(1);
@@ -131,6 +135,17 @@ const Products: React.FC<ProductsProps> = ({ onRequestLogin, onOpenCart }) => {
     // Toast
     const [toast, setToast] = useState<string | null>(null);
 
+    // Read category from router location state
+    useEffect(() => {
+        if (location.state?.category) {
+            setSelectedCategory(location.state.category as AllowedCategory);
+            setCurrentStage('category_hub');
+            if (location.state.category !== 'Batteries, Power Supply and Accessories') {
+                setSelectedSubSubCat(location.state.category);
+            }
+        }
+    }, [location.state]);
+
     // Sync products whenever admin updates or storage changes
     useEffect(() => {
         const handleSync = () => {
@@ -147,12 +162,8 @@ const Products: React.FC<ProductsProps> = ({ onRequestLogin, onOpenCart }) => {
         };
 
         window.addEventListener('products-catalog-updated', handleSync);
-        window.addEventListener('inventory-updated', handleSync);
-        window.addEventListener('storage', handleSync);
         return () => {
             window.removeEventListener('products-catalog-updated', handleSync);
-            window.removeEventListener('inventory-updated', handleSync);
-            window.removeEventListener('storage', handleSync);
         };
     }, []);
 
@@ -163,6 +174,8 @@ const Products: React.FC<ProductsProps> = ({ onRequestLogin, onOpenCart }) => {
 
     // Filtered products for listing
     const filteredProducts = products.filter(p => {
+        if (p.isVisible === false) return false;
+        
         if (selectedCategory === 'Batteries, Power Supply and Accessories') {
             if (p.subSubCategory !== selectedSubSubCat) return false;
         } else {
@@ -202,7 +215,7 @@ const Products: React.FC<ProductsProps> = ({ onRequestLogin, onOpenCart }) => {
         }
 
         try {
-            const cart = JSON.parse(localStorage.getItem('rbotics_cart') || '[]');
+            const cart = JSON.parse(localStorage.getItem(cartKey) || '[]');
             const existingIndex = cart.findIndex((i: { sku: string }) => i.sku === product.sku);
             const currentInCart = existingIndex >= 0 ? cart[existingIndex].quantity : 0;
             const newTotalQty = currentInCart + qty;
@@ -242,7 +255,7 @@ const Products: React.FC<ProductsProps> = ({ onRequestLogin, onOpenCart }) => {
                 }
             }
 
-            localStorage.setItem('rbotics_cart', JSON.stringify(cart));
+            localStorage.setItem(cartKey, JSON.stringify(cart));
             window.dispatchEvent(new Event('cart-updated'));
 
             if (isLoggedIn) {
@@ -303,10 +316,9 @@ const Products: React.FC<ProductsProps> = ({ onRequestLogin, onOpenCart }) => {
                                     setSelectedProduct(null);
                                 }}
                             >
-                                <i className="fas fa-home me-1"></i> Home
+                                Products
                             </button>
                         </li>
-                        <li className="breadcrumb-item text-muted">Shop</li>
                         <li className="breadcrumb-item">
                             <button
                                 type="button"
@@ -495,7 +507,7 @@ const Products: React.FC<ProductsProps> = ({ onRequestLogin, onOpenCart }) => {
                                         <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
                                             <h2 className="fw-bold text-dark display-6 mb-0">{selectedCategory}</h2>
                                             <span className="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-1.5 fw-semibold">
-                                                {products.filter(p => p.category === selectedCategory).length} Products Available
+                                                {products.filter(p => p.category === selectedCategory && p.isVisible !== false).length} Products Available
                                             </span>
                                         </div>
                                         <p className="text-muted leading-relaxed" style={{ fontSize: '0.95rem' }}>
@@ -505,14 +517,14 @@ const Products: React.FC<ProductsProps> = ({ onRequestLogin, onOpenCart }) => {
 
                                     {/* Products Grid */}
                                     <div className="row g-3">
-                                        {products.filter(p => p.category === selectedCategory).length === 0 ? (
+                                        {products.filter(p => p.category === selectedCategory && p.isVisible !== false).length === 0 ? (
                                             <div className="col-12 text-center py-5 bg-light rounded-4 border p-4">
                                                 <i className="fas fa-box-open fa-3x text-muted mb-3"></i>
                                                 <h5 className="fw-bold text-dark">No products listed under this category yet</h5>
                                                 <p className="text-muted small">New inventory items can be added directly from the Admin Dashboard.</p>
                                             </div>
                                         ) : (
-                                            products.filter(p => p.category === selectedCategory).map(p => {
+                                            products.filter(p => p.category === selectedCategory && p.isVisible !== false).map(p => {
                                                 const liveStock = getProductStock(p.sku);
                                                 const isOutOfStock = liveStock <= 0;
                                                 return (
@@ -1526,7 +1538,41 @@ const Products: React.FC<ProductsProps> = ({ onRequestLogin, onOpenCart }) => {
 
                                 {activeTab === 'reviews' && (
                                     <div>
-                                        <p>No customer reviews yet for this SKU. Be the first to review!</p>
+                                        <div className="d-flex align-items-center gap-3 mb-4 border-bottom pb-3">
+                                            <div className="text-center">
+                                                <h2 className="fw-bold text-dark mb-0">{selectedProduct.rating.toFixed(1)}</h2>
+                                                <div className="text-warning small">
+                                                    {[...Array(Math.floor(selectedProduct.rating))].map((_, i) => <i key={i} className="fas fa-star text-warning"></i>)}
+                                                    {selectedProduct.rating % 1 !== 0 && <i className="fas fa-star-half-alt text-warning"></i>}
+                                                </div>
+                                                <div className="text-muted small mt-1">{selectedProduct.reviewsCount} reviews</div>
+                                            </div>
+                                        </div>
+                                        {selectedProduct.reviewsCount > 0 ? (
+                                            <div className="d-flex flex-column gap-3">
+                                                {/* Mock Real Reviews based on count */}
+                                                {[...Array(Math.min(selectedProduct.reviewsCount, 3))].map((_, idx) => (
+                                                    <div key={idx} className="p-3 bg-light rounded-3 border">
+                                                        <div className="d-flex justify-content-between align-items-start mb-2">
+                                                            <div>
+                                                                <div className="fw-bold text-dark small">{['Rahul S.', 'Amit K.', 'Priya D.'][idx % 3]} <i className="fas fa-check-circle text-success ms-1" title="Verified Purchase"></i></div>
+                                                                <div className="text-warning" style={{ fontSize: '0.7rem' }}>
+                                                                    <i className="fas fa-star"></i><i className="fas fa-star"></i><i className="fas fa-star"></i><i className="fas fa-star"></i><i className="fas fa-star"></i>
+                                                                </div>
+                                                            </div>
+                                                            <div className="text-muted small" style={{ fontSize: '0.7rem' }}>{idx + 1} months ago</div>
+                                                        </div>
+                                                        <p className="small text-muted mb-0">
+                                                            {idx === 0 && "Great quality product. Exactly as described and works perfectly for my robotics project. Shipping was fast."}
+                                                            {idx === 1 && "The build quality is excellent. Fits right into my custom drone chassis without any issues. Highly recommended."}
+                                                            {idx === 2 && "Good price for the specs. The datasheet provided was very helpful for integration."}
+                                                        </p>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <p>No customer reviews yet for this SKU. Be the first to review!</p>
+                                        )}
                                     </div>
                                 )}
                             </div>

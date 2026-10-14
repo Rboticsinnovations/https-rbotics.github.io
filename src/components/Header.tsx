@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import logoBg from '../assets/rbotics-logo-removebg.png';
 import { useAuth } from '../context/AuthContext';
+import { ALLOWED_CATEGORIES } from '../data/productsData';
 
 interface HeaderProps {
     onLoginClick: () => void;
@@ -10,22 +12,17 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ onLoginClick, onAdminClick, onCartClick }) => {
     const [isOpen, setIsOpen] = useState(false);
-    const [activeLink, setActiveLink] = useState('#home');
+    const [activeLink, setActiveLink] = useState('');
     const { isLoggedIn, isAdmin, currentUser, logout } = useAuth();
-    const [cartCount, setCartCount] = useState<number>(() => {
-        try {
-            const cart = JSON.parse(localStorage.getItem('rbotics_cart') || '[]');
-            return cart.reduce((sum: number, item: { quantity?: number }) => sum + (item.quantity || 1), 0);
-        } catch {
-            return 0;
-        }
-    });
+    const location = useLocation();
+    const navigate = useNavigate();
+    const cartKey = `rbotics_cart_${currentUser?.email || 'guest'}`;
+    const [cartCount, setCartCount] = useState<number>(0);
 
-    // Real-time cart synchronization
     useEffect(() => {
         const updateCart = () => {
             try {
-                const cart = JSON.parse(localStorage.getItem('rbotics_cart') || '[]');
+                const cart = JSON.parse(localStorage.getItem(cartKey) || '[]');
                 const total = cart.reduce((sum: number, item: { quantity?: number }) => sum + (item.quantity || 1), 0);
                 setCartCount(total);
             } catch {
@@ -33,15 +30,22 @@ const Header: React.FC<HeaderProps> = ({ onLoginClick, onAdminClick, onCartClick
             }
         };
 
+        // Run immediately to load cart for this user
+        updateCart();
+
         window.addEventListener('cart-updated', updateCart);
         return () => window.removeEventListener('cart-updated', updateCart);
-    }, []);
+    }, [cartKey]);
 
-    // Scrollspy: automatically highlight nav links as user scrolls
     useEffect(() => {
-        const sections = ['home', 'products', 'services', 'about', 'contact'];
+        if (location.pathname !== '/') {
+            setActiveLink(location.pathname);
+            return;
+        }
+
+        const sections = ['home', 'services', 'about', 'contact'];
         const handleScroll = () => {
-            const scrollPos = window.scrollY + 140; // offset for fixed navbar
+            const scrollPos = window.scrollY + 140;
             for (let i = sections.length - 1; i >= 0; i--) {
                 const el = document.getElementById(sections[i]);
                 if (el) {
@@ -57,25 +61,40 @@ const Header: React.FC<HeaderProps> = ({ onLoginClick, onAdminClick, onCartClick
         window.addEventListener('scroll', handleScroll, { passive: true });
         handleScroll();
         return () => window.removeEventListener('scroll', handleScroll);
-    }, []);
+    }, [location.pathname]);
 
     const toggleMenu = () => setIsOpen(!isOpen);
 
-    const handleNavClick = (hash: string) => {
-        setActiveLink(hash);
+    const handleNavClick = (hashOrPath: string) => {
         setIsOpen(false);
+        if (hashOrPath.startsWith('#')) {
+            if (location.pathname !== '/') {
+                navigate('/' + hashOrPath);
+            } else {
+                const el = document.getElementById(hashOrPath.substring(1));
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+            }
+        } else {
+            navigate(hashOrPath);
+        }
     };
+
+    const navItems = [
+        { label: 'Home', path: '#home' },
+        { label: 'Products', path: '/products', isDropdown: true },
+        { label: 'Services', path: '#services' },
+        { label: 'About', path: '#about' },
+        { label: 'Contact', path: '#contact' },
+    ];
 
     return (
         <header className="fixed-top bg-white shadow-sm">
             <div className="container-fluid px-lg-5 py-2">
                 <div className="d-flex justify-content-between align-items-center">
-                    {/* Logo Section */}
-                    <a href="#home" className="navbar-brand d-flex align-items-center me-4" onClick={() => handleNavClick('#home')}>
+                    <Link to="/" className="navbar-brand d-flex align-items-center me-4">
                         <img src={logoBg} alt="Rbotics Logo" style={{ height: '50px', objectFit: 'contain' }} />
-                    </a>
+                    </Link>
 
-                    {/* Search Bar - Hidden on small screens */}
                     <div className="d-none d-lg-block mx-5" style={{ width: '250px' }}>
                         <div className="input-group bg-light rounded-pill px-3 py-1 border">
                             <span className="input-group-text bg-transparent border-0 text-muted"><i className="fas fa-search"></i></span>
@@ -83,23 +102,53 @@ const Header: React.FC<HeaderProps> = ({ onLoginClick, onAdminClick, onCartClick
                         </div>
                     </div>
 
-                    {/* Desktop Navigation */}
                     <nav className="d-none d-lg-flex gap-5 align-items-center fw-medium text-nowrap flex-grow-1 justify-content-center">
-                        {['#home', '#products', '#services', '#about', '#contact'].map((hash) => (
-                            <a
-                                key={hash}
-                                href={hash}
-                                className={`text-decoration-none text-dark nav-link-custom ${activeLink === hash ? 'active' : ''}`}
-                                onClick={() => handleNavClick(hash)}
-                            >
-                                {hash.replace('#', '').charAt(0).toUpperCase() + hash.slice(2)}
-                            </a>
+                        {navItems.map((item) => (
+                            item.isDropdown ? (
+                                <div className="dropdown" key={item.label}>
+                                    <Link
+                                        to={item.path}
+                                        className={`text-decoration-none text-dark nav-link-custom ${activeLink === item.path ? 'active' : ''}`}
+                                        onMouseEnter={(e) => {
+                                            const dropdownMenu = e.currentTarget.nextElementSibling;
+                                            if (dropdownMenu) dropdownMenu.classList.add('show');
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            const dropdownMenu = e.currentTarget.nextElementSibling;
+                                            if (dropdownMenu) dropdownMenu.classList.remove('show');
+                                        }}
+                                        style={{ paddingBottom: '15px' }} // to keep hover active slightly below
+                                    >
+                                        {item.label} <i className="fas fa-chevron-down ms-1" style={{ fontSize: '0.7em' }}></i>
+                                    </Link>
+                                    <ul 
+                                        className="dropdown-menu shadow-sm border-0 mt-0" 
+                                        style={{ minWidth: '250px', top: '100%', left: '0' }}
+                                        onMouseEnter={(e) => e.currentTarget.classList.add('show')}
+                                        onMouseLeave={(e) => e.currentTarget.classList.remove('show')}
+                                    >
+                                        {ALLOWED_CATEGORIES.map(cat => (
+                                            <li key={cat}>
+                                                <Link className="dropdown-item py-2 text-wrap" to="/products" state={{ category: cat }}>
+                                                    {cat}
+                                                </Link>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            ) : (
+                                <button
+                                    key={item.label}
+                                    onClick={() => handleNavClick(item.path)}
+                                    className={`btn btn-link text-decoration-none text-dark nav-link-custom p-0 ${activeLink === item.path ? 'active' : ''}`}
+                                >
+                                    {item.label}
+                                </button>
+                            )
                         ))}
                     </nav>
 
-                    {/* Icons Section */}
                     <div className="d-flex align-items-center gap-3 ms-4">
-                        {/* Admin Dashboard Link */}
                         {isAdmin && (
                             <button
                                 onClick={onAdminClick}
@@ -118,7 +167,6 @@ const Header: React.FC<HeaderProps> = ({ onLoginClick, onAdminClick, onCartClick
                             </button>
                         )}
 
-                        {/* User Profile / Login */}
                         {isLoggedIn ? (
                             <div className="dropdown">
                                 <button
@@ -167,7 +215,6 @@ const Header: React.FC<HeaderProps> = ({ onLoginClick, onAdminClick, onCartClick
                             </button>
                         )}
 
-                        {/* Cart */}
                         <button
                             type="button"
                             onClick={onCartClick}
@@ -181,7 +228,6 @@ const Header: React.FC<HeaderProps> = ({ onLoginClick, onAdminClick, onCartClick
                             </span>
                         </button>
 
-                        {/* Mobile Toggle */}
                         <button
                             className="navbar-toggler d-lg-none border-0 ms-2"
                             type="button"
@@ -193,7 +239,6 @@ const Header: React.FC<HeaderProps> = ({ onLoginClick, onAdminClick, onCartClick
                     </div>
                 </div>
 
-                {/* Mobile Menu */}
                 {isOpen && (
                     <div className="d-lg-none mt-3 border-top pt-3">
                         <div className="mb-3">
@@ -203,15 +248,14 @@ const Header: React.FC<HeaderProps> = ({ onLoginClick, onAdminClick, onCartClick
                             </div>
                         </div>
                         <div className="d-flex flex-column gap-3 align-items-center">
-                            {['#home', '#products', '#services', '#about', '#contact'].map((hash) => (
-                                <a
-                                    key={hash}
-                                    href={hash}
-                                    className={`text-decoration-none text-dark fw-bold ${activeLink === hash ? 'text-primary' : ''}`}
-                                    onClick={() => handleNavClick(hash)}
+                            {navItems.map((item) => (
+                                <button
+                                    key={item.label}
+                                    onClick={() => handleNavClick(item.path)}
+                                    className={`btn btn-link text-decoration-none text-dark fw-bold ${activeLink === item.path ? 'text-primary' : ''}`}
                                 >
-                                    {hash.replace('#', '').charAt(0).toUpperCase() + hash.slice(2)}
-                                </a>
+                                    {item.label}
+                                </button>
                             ))}
                             <button className="btn btn-outline-dark btn-sm d-flex align-items-center gap-2" onClick={() => { onCartClick(); setIsOpen(false); }}>
                                 <i className="fas fa-shopping-cart"></i> Cart ({cartCount})

@@ -7,12 +7,16 @@ interface LoginPageProps {
 }
 
 const LoginPage: React.FC<LoginPageProps> = ({ onClose, onSuccess }) => {
-    const { login, register } = useAuth();
-    const [mode, setMode] = useState<'login' | 'register'>('login');
+    const { login, register, verifyOtp, setPassword } = useAuth();
+    const [mode, setMode] = useState<'login' | 'register' | 'forgot_pwd' | 'verify_otp' | 'set_password'>('login');
 
     // Login: can enter email or mobile
     const [loginId, setLoginId] = useState('');
     const [loginPassword, setLoginPassword] = useState('');
+    
+    // OTP Verification
+    const [otpCode, setOtpCode] = useState('');
+    const [verifyEmail, setVerifyEmail] = useState('');
 
     // Register fields
     const [regName, setRegName] = useState('');
@@ -27,6 +31,15 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose, onSuccess }) => {
 
     const clearErrors = () => { setError(''); setSuccess(''); };
 
+    const handleMockAction = (msg: string) => {
+        setLoading(true);
+        clearErrors();
+        setTimeout(() => {
+            setLoading(false);
+            setSuccess(msg);
+        }, 1000);
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
@@ -34,7 +47,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose, onSuccess }) => {
         await new Promise(r => setTimeout(r, 600));
 
         if (mode === 'login') {
-            const res = login(loginId.trim(), loginPassword);
+            const res = await login(loginId.trim(), loginPassword);
             if (res.success) {
                 setSuccess(res.message);
                 setTimeout(() => {
@@ -44,23 +57,36 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose, onSuccess }) => {
             } else {
                 setError(res.message);
             }
-        } else {
+        } else if (mode === 'register') {
             // Register validations
-            if (!regEmail && !regMobile) {
-                setError('Please provide at least an email or mobile number.');
+            const res = await register(regName, regEmail, regMobile);
+            if (res.success) {
+                setSuccess('OTP sent to email. Please verify.');
+                setVerifyEmail(regEmail);
+                setTimeout(() => {
+                    setMode('verify_otp');
+                    clearErrors();
+                }, 1500);
+            } else {
+                setError(res.message);
+            }
+        } else if (mode === 'verify_otp') {
+            if (otpCode.length < 6) {
+                setError('Invalid OTP code.');
                 setLoading(false);
                 return;
             }
-            if (regEmail && !/\S+@\S+\.\S+/.test(regEmail)) {
-                setError('Enter a valid email address.');
-                setLoading(false);
-                return;
+            const res = await verifyOtp(verifyEmail, otpCode);
+            if (res.success) {
+                setSuccess('Account verified successfully! You can now set your password.');
+                setTimeout(() => {
+                    setMode('set_password');
+                    clearErrors();
+                }, 1500);
+            } else {
+                setError(res.message);
             }
-            if (regMobile && !/^[+]?[0-9\s\-]{7,15}$/.test(regMobile)) {
-                setError('Enter a valid mobile number.');
-                setLoading(false);
-                return;
-            }
+        } else if (mode === 'set_password') {
             if (regPassword !== regConfirm) {
                 setError('Passwords do not match.');
                 setLoading(false);
@@ -71,13 +97,13 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose, onSuccess }) => {
                 setLoading(false);
                 return;
             }
-            const res = register(regName, regEmail, regMobile, regPassword);
+            const res = await setPassword(verifyEmail, regPassword);
             if (res.success) {
-                setSuccess(res.message);
+                setSuccess('Password set successfully! Logging in...');
                 setTimeout(() => {
                     onClose?.();
                     onSuccess?.();
-                }, 800);
+                }, 1500);
             } else {
                 setError(res.message);
             }
@@ -138,10 +164,10 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose, onSuccess }) => {
                         <i className="fas fa-robot" style={{ color: '#fff', fontSize: '1.5rem' }}></i>
                     </div>
                     <h2 style={{ color: '#e2e8f0', fontSize: '1.5rem', marginBottom: '0.3rem', fontFamily: 'Montserrat, sans-serif' }}>
-                        {mode === 'login' ? 'Welcome Back' : 'Create Account'}
+                        {mode === 'login' ? 'Welcome Back' : mode === 'register' ? 'Create Account' : mode === 'verify_otp' ? 'Verify OTP' : mode === 'set_password' ? 'Set Password' : 'Reset Password'}
                     </h2>
                     <p style={{ color: '#64748b', fontSize: '0.875rem' }}>
-                        {mode === 'login' ? 'Sign in to your Rbotics account' : 'Join the Rbotics community'}
+                        {mode === 'login' ? 'Sign in to your Rbotics account' : mode === 'register' ? 'Join the Rbotics community' : mode === 'verify_otp' ? 'Verify your email address' : mode === 'set_password' ? 'Secure your account' : 'Enter your email to reset password'}
                     </p>
                 </div>
 
@@ -211,6 +237,48 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose, onSuccess }) => {
                                     style={inputStyle}
                                 />
                             </Field>
+                            
+                            <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', marginBottom: '1.5rem', fontSize: '0.85rem' }}>
+                                <button type="button" className="btn btn-link p-0 text-decoration-none" style={{ color: '#3b82f6' }} onClick={() => {setMode('forgot_pwd'); clearErrors();}}>
+                                    Forgot Password?
+                                </button>
+                            </div>
+                        </>
+                    )}
+
+
+                    
+                    {/* ── FORGOT PASSWORD ───────────────────────── */}
+                    {mode === 'forgot_pwd' && (
+                        <>
+                            <Field label="Email Address" icon="fa-envelope" last>
+                                <input
+                                    type="email" required
+                                    placeholder="you@example.com"
+                                    style={inputStyle}
+                                />
+                            </Field>
+                            
+                            <button
+                                type="button"
+                                onClick={() => handleMockAction('Password reset link sent to your email.')}
+                                disabled={loading}
+                                style={{
+                                    width: '100%', padding: '0.85rem',
+                                    background: 'linear-gradient(135deg, #3b82f6, #06b6d4)',
+                                    border: 'none', borderRadius: '12px',
+                                    color: '#fff', fontWeight: 600, fontSize: '0.9rem',
+                                    marginBottom: '1rem', cursor: loading ? 'not-allowed' : 'pointer'
+                                }}
+                            >
+                                {loading ? 'Sending...' : 'Send Reset Link'}
+                            </button>
+                            
+                            <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+                                <button type="button" className="btn btn-link p-0 text-decoration-none" style={{ color: '#94a3b8', fontSize: '0.85rem' }} onClick={() => {setMode('login'); clearErrors();}}>
+                                    Back to sign in
+                                </button>
+                            </div>
                         </>
                     )}
 
@@ -238,46 +306,38 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose, onSuccess }) => {
                                 />
                             </Field>
 
-                            {/* OR divider */}
-                            <div style={{
-                                display: 'flex', alignItems: 'center', gap: '0.75rem',
-                                margin: '0.5rem 0',
-                            }}>
-                                <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.08)' }} />
-                                <span style={{
-                                    color: '#475569', fontSize: '0.75rem', fontWeight: 700,
-                                    letterSpacing: '0.08em',
-                                    background: 'rgba(255,255,255,0.06)',
-                                    border: '1px solid rgba(255,255,255,0.1)',
-                                    borderRadius: '20px', padding: '0.2rem 0.75rem',
-                                }}>OR</span>
-                                <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.08)' }} />
-                            </div>
+                            {/* End Register */}
+                        </>
+                    )}
 
-                            {/* Mobile */}
-                            <Field label="Mobile Number" icon="fa-mobile-alt">
+                    {/* ── VERIFY EMAIL OTP ──────────────────────── */}
+                    {mode === 'verify_otp' && (
+                        <>
+                            <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+                                <p style={{ color: '#94a3b8', fontSize: '0.9rem', marginBottom: '0.5rem' }}>
+                                    We sent a 6-digit OTP to <strong>{verifyEmail}</strong>.
+                                </p>
+                            </div>
+                            <Field label="OTP Code" icon="fa-shield-alt" last>
                                 <input
-                                    type="tel"
-                                    value={regMobile}
-                                    onChange={e => { setRegMobile(e.target.value); clearErrors(); }}
-                                    placeholder="+91 9876543210"
-                                    pattern="[+]?[0-9\s\-]{7,15}"
+                                    type="text" required
+                                    value={otpCode}
+                                    onChange={e => { setOtpCode(e.target.value); clearErrors(); }}
+                                    placeholder="123456"
                                     style={inputStyle}
                                 />
                             </Field>
+                        </>
+                    )}
 
-                            <div style={{
-                                background: 'rgba(6,182,212,0.08)',
-                                border: '1px solid rgba(6,182,212,0.2)',
-                                borderRadius: '8px', padding: '0.6rem 0.9rem',
-                                fontSize: '0.78rem', color: '#67e8f9',
-                                marginBottom: '1rem',
-                                display: 'flex', alignItems: 'flex-start', gap: '0.5rem',
-                            }}>
-                                <i className="fas fa-info-circle" style={{ marginTop: '0.1rem', flexShrink: 0 }}></i>
-                                <span>Provide at least one — <strong>email</strong> or <strong>mobile</strong> — to create your account. You can also add both.</span>
+                    {/* ── SET PASSWORD ──────────────────────────── */}
+                    {mode === 'set_password' && (
+                        <>
+                            <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+                                <p style={{ color: '#94a3b8', fontSize: '0.9rem', marginBottom: '0.5rem' }}>
+                                    Secure your account for <strong>{verifyEmail}</strong>.
+                                </p>
                             </div>
-
                             <Field label="Password" icon="fa-lock">
                                 <input
                                     type="password" required
@@ -299,26 +359,35 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose, onSuccess }) => {
                         </>
                     )}
 
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        style={{
-                            width: '100%', padding: '0.85rem',
-                            background: loading ? '#334155' : 'linear-gradient(135deg, #3b82f6, #06b6d4)',
-                            border: 'none', borderRadius: '12px',
-                            color: '#fff', fontWeight: 700, fontSize: '0.95rem',
-                            cursor: loading ? 'not-allowed' : 'pointer',
-                            boxShadow: loading ? 'none' : '0 8px 24px rgba(59,130,246,0.35)',
-                            transition: 'all 0.3s',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
-                            marginTop: '0.5rem',
-                        }}
-                    >
-                        {loading
-                            ? <><span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing…</>
-                            : <>{mode === 'login' ? <><i className="fas fa-sign-in-alt"></i> Sign In</> : <><i className="fas fa-user-plus"></i> Create Account</>}</>
-                        }
-                    </button>
+                    {(mode === 'login' || mode === 'register' || mode === 'verify_otp' || mode === 'set_password') && (
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            style={{
+                                width: '100%', padding: '0.85rem',
+                                background: loading ? '#334155' : 'linear-gradient(135deg, #3b82f6, #06b6d4)',
+                                border: 'none', borderRadius: '12px',
+                                color: '#fff', fontWeight: 700, fontSize: '0.95rem',
+                                cursor: loading ? 'not-allowed' : 'pointer',
+                                boxShadow: loading ? 'none' : '0 8px 24px rgba(59,130,246,0.35)',
+                                transition: 'all 0.3s',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+                                marginTop: '0.5rem',
+                            }}
+                        >
+                            {loading
+                                ? <><span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing…</>
+                                : <>{mode === 'login' ? <><i className="fas fa-sign-in-alt"></i> Sign In</> : mode === 'verify_otp' ? <><i className="fas fa-check-circle"></i> Verify</> : mode === 'set_password' ? <><i className="fas fa-lock"></i> Set Password</> : <><i className="fas fa-paper-plane"></i> Send OTP</>}</>
+                            }
+                        </button>
+                    )}
+                    
+                    {/* Delete account mock */}
+                    <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
+                        <button type="button" className="btn btn-link p-0 text-decoration-none" style={{ color: '#ef4444', fontSize: '0.8rem' }} onClick={() => handleMockAction('Account deletion requested. Support will contact you shortly.')}>
+                            Request Account Deletion
+                        </button>
+                    </div>
                 </form>
             </div>
         </div>

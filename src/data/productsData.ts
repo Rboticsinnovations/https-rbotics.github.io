@@ -23,6 +23,7 @@ export interface ProductItem {
     datasheetUrl?: string;
     imageUrl?: string;
     images?: string[];
+    isVisible?: boolean;
 }
 
 export const ALLOWED_CATEGORIES = [

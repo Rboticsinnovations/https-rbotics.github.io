@@ -70,7 +70,7 @@ const AdminDashboard: React.FC = () => {
     const [formBrand, setFormBrand] = useState('Rbotics Innovations');
     const [formWarranty, setFormWarranty] = useState('15 Days Replacement Warranty against manufacturing defects.');
     const [formDatasheetUrl, setFormDatasheetUrl] = useState('');
-    const [formImageUrl, setFormImageUrl] = useState('');
+    const [formImages, setFormImages] = useState<string[]>([]);
     const [formVoltage, setFormVoltage] = useState('');
     const [formCapacity, setFormCapacity] = useState('');
     const [formConnector, setFormConnector] = useState('');
@@ -116,7 +116,7 @@ const AdminDashboard: React.FC = () => {
         setFormBrand(p.brand || 'Rbotics Innovations');
         setFormWarranty(p.warranty || '15 Days Replacement Warranty');
         setFormDatasheetUrl(p.datasheetUrl || '');
-        setFormImageUrl(p.imageUrl || '');
+        setFormImages(p.images?.length ? p.images : (p.imageUrl ? [p.imageUrl] : []));
         setFormVoltage(p.voltage || '');
         setFormCapacity(p.capacity || '');
         setFormConnector(p.connector || '');
@@ -152,7 +152,7 @@ const AdminDashboard: React.FC = () => {
         setFormBrand('Rbotics Innovations');
         setFormWarranty('15 Days Replacement Warranty against manufacturing defects.');
         setFormDatasheetUrl('https://rbotics.in/datasheets/sample-spec.pdf');
-        setFormImageUrl('');
+        setFormImages([]);
         setFormVoltage('');
         setFormCapacity('');
         setFormConnector('');
@@ -185,7 +185,8 @@ const AdminDashboard: React.FC = () => {
             brand: formBrand.trim(),
             warranty: formWarranty.trim(),
             datasheetUrl: formDatasheetUrl.trim(),
-            imageUrl: formImageUrl.trim(),
+            imageUrl: formImages.length > 0 ? formImages[0] : '',
+            images: formImages,
             voltage: formVoltage.trim() || undefined,
             capacity: formCapacity.trim() || undefined,
             connector: formConnector.trim() || undefined,
@@ -208,6 +209,13 @@ const AdminDashboard: React.FC = () => {
             refreshData();
             showNotification(`Product "${p.name}" removed from catalog.`);
         }
+    };
+
+    const handleToggleVisibility = (p: ProductItem) => {
+        const updated = { ...p, isVisible: p.isVisible === false ? true : false };
+        saveProduct(updated);
+        refreshData();
+        showNotification(`Product "${p.name}" is now ${updated.isVisible ? 'Visible' : 'Hidden'}.`);
     };
 
     const deleteUser = (id: string) => {
@@ -634,6 +642,18 @@ const AdminDashboard: React.FC = () => {
                                                             title="Edit product details, price, images, warranty, datasheet"
                                                         >
                                                             <i className="fas fa-edit"></i> Edit
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleToggleVisibility(p)}
+                                                            style={{
+                                                                padding: '0.4rem 0.6rem', background: p.isVisible !== false ? 'rgba(16,185,129,0.15)' : 'rgba(245,158,11,0.15)',
+                                                                border: `1px solid ${p.isVisible !== false ? 'rgba(16,185,129,0.3)' : 'rgba(245,158,11,0.3)'}`, borderRadius: '6px',
+                                                                color: p.isVisible !== false ? '#34d399' : '#fbbf24', fontSize: '0.75rem', cursor: 'pointer'
+                                                            }}
+                                                            title={p.isVisible !== false ? "Visible (Click to hide)" : "Hidden (Click to show)"}
+                                                        >
+                                                            <i className={`fas ${p.isVisible !== false ? 'fa-eye' : 'fa-eye-slash'}`}></i>
                                                         </button>
                                                         <button
                                                             type="button"
@@ -1074,34 +1094,66 @@ const AdminDashboard: React.FC = () => {
                                     />
                                 </div>
 
-                                {/* Image URL with live preview */}
+                                {/* Product Images List */}
                                 <div className="col-12">
                                     <label style={{ color: '#cbd5e1', fontSize: '0.8rem', fontWeight: 600, display: 'block', marginBottom: '0.35rem' }}>
-                                        Product Image URL (Live Web Link)
+                                        Product Images (URLs)
                                     </label>
-                                    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                                        <input
-                                            type="url"
-                                            placeholder="https://example.com/images/product.jpg"
-                                            style={{
-                                                flex: 1, background: '#1e293b', border: '1px solid rgba(255,255,255,0.15)',
-                                                color: '#fff', borderRadius: '8px', padding: '0.6rem 0.85rem', fontSize: '0.85rem'
-                                            }}
-                                            value={formImageUrl}
-                                            onChange={(e) => setFormImageUrl(e.target.value)}
-                                        />
-                                        {formImageUrl && (
-                                            <div style={{
-                                                width: '45px', height: '45px', borderRadius: '8px',
-                                                border: '1px solid rgba(255,255,255,0.2)', overflow: 'hidden',
-                                                background: '#fff', flexShrink: 0
-                                            }}>
-                                                <img src={formImageUrl} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                        {formImages.map((imgUrl, idx) => (
+                                            <div key={idx} style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                                                <input
+                                                    type="url"
+                                                    placeholder="https://example.com/images/product.jpg"
+                                                    style={{
+                                                        flex: 1, background: '#1e293b', border: '1px solid rgba(255,255,255,0.15)',
+                                                        color: '#fff', borderRadius: '8px', padding: '0.6rem 0.85rem', fontSize: '0.85rem'
+                                                    }}
+                                                    value={imgUrl}
+                                                    onChange={(e) => {
+                                                        const newImgs = [...formImages];
+                                                        newImgs[idx] = e.target.value;
+                                                        setFormImages(newImgs);
+                                                    }}
+                                                />
+                                                {imgUrl && (
+                                                    <div style={{
+                                                        width: '45px', height: '45px', borderRadius: '8px',
+                                                        border: '1px solid rgba(255,255,255,0.2)', overflow: 'hidden',
+                                                        background: '#fff', flexShrink: 0
+                                                    }}>
+                                                        <img src={imgUrl} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                                                    </div>
+                                                )}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setFormImages(formImages.filter((_, i) => i !== idx))}
+                                                    style={{
+                                                        background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)',
+                                                        color: '#f87171', borderRadius: '8px', padding: '0.6rem',
+                                                        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                                    }}
+                                                    title="Remove Image"
+                                                >
+                                                    <i className="fas fa-trash"></i>
+                                                </button>
                                             </div>
-                                        )}
+                                        ))}
+                                        <button
+                                            type="button"
+                                            onClick={() => setFormImages([...formImages, ''])}
+                                            style={{
+                                                background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.3)',
+                                                color: '#60a5fa', borderRadius: '8px', padding: '0.6rem',
+                                                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', width: 'fit-content',
+                                                fontSize: '0.8rem', fontWeight: 600
+                                            }}
+                                        >
+                                            <i className="fas fa-plus"></i> Add Image URL
+                                        </button>
                                     </div>
-                                    <small style={{ color: '#64748b' }}>
-                                        If left blank, system generates an interactive SVG/hardware icon automatically.
+                                    <small style={{ color: '#64748b', display: 'block', marginTop: '0.5rem' }}>
+                                        First image is used as the primary thumbnail. If no images are added, the system generates an SVG automatically.
                                     </small>
                                 </div>
 

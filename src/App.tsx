@@ -1,6 +1,7 @@
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 import { useState } from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Header from './components/Header';
 import Hero from './components/Hero';
 import Products from './components/Products';
@@ -14,6 +15,17 @@ import CartPage from './components/CartPage';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import './index.css';
 
+function Home() {
+  return (
+    <>
+      <Hero />
+      <Services />
+      <About />
+      <Contact />
+    </>
+  );
+}
+
 function AppContent() {
   const { isLoggedIn, isAdmin } = useAuth();
   const [showLogin, setShowLogin] = useState(false);
@@ -22,7 +34,7 @@ function AppContent() {
   const [pendingCartOpen, setPendingCartOpen] = useState(false);
 
   const handleLoginClick = () => {
-    if (isLoggedIn) return; // Already logged in, do nothing
+    if (isLoggedIn) return;
     setShowLogin(true);
   };
 
@@ -57,7 +69,6 @@ function AppContent() {
     setShowLogin(true);
   };
 
-  // Show admin dashboard as a full page overlay
   if (showAdmin && isAdmin) {
     return (
       <div>
@@ -88,16 +99,19 @@ function AppContent() {
         onAdminClick={handleAdminClick}
         onCartClick={handleCartClick}
       />
-      <Hero />
-      <main>
-        <Products
-          onRequestLogin={handleRequestLoginForCart}
-          onOpenCart={() => setShowCart(true)}
-        />
-        <Services />
-        <About />
-        <Contact />
+      
+      <main className="flex-grow-1" style={{ marginTop: '76px' }}>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/products" element={
+            <Products
+              onRequestLogin={handleRequestLoginForCart}
+              onOpenCart={() => setShowCart(true)}
+            />
+          } />
+        </Routes>
       </main>
+
       <Footer />
 
       {/* Cart Modal / Page */}
@@ -115,9 +129,11 @@ function AppContent() {
 
 function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <Router>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </Router>
   );
 }
 

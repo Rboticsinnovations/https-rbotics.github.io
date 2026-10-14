@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { getProductStock, deductStock } from '../data/productsData';
 import { BatteryVisual } from './BatteryVisual';
@@ -18,9 +18,10 @@ interface CartPageProps {
 
 const CartPage: React.FC<CartPageProps> = ({ onClose }) => {
     const { currentUser } = useAuth();
+    const cartKey = `rbotics_cart_${currentUser?.email || 'guest'}`;
     const [cartItems, setCartItems] = useState<CartItem[]>(() => {
         try {
-            return JSON.parse(localStorage.getItem('rbotics_cart') || '[]');
+            return JSON.parse(localStorage.getItem(cartKey) || '[]');
         } catch {
             return [];
         }
@@ -36,7 +37,7 @@ const CartPage: React.FC<CartPageProps> = ({ onClose }) => {
         pincode: '535002'
     });
 
-    const [paymentMethod, setPaymentMethod] = useState<'cod' | 'upi' | 'card'>('cod');
+    const [paymentMethod, setPaymentMethod] = useState<'upi' | 'card'>('upi');
     const [orderConfirmed, setOrderConfirmed] = useState<any | null>(null);
     const [submitting, setSubmitting] = useState(false);
     const [stockError, setStockError] = useState<string | null>(null);
@@ -58,14 +59,14 @@ const CartPage: React.FC<CartPageProps> = ({ onClose }) => {
         }).filter(Boolean) as CartItem[];
 
         setCartItems(updated);
-        localStorage.setItem('rbotics_cart', JSON.stringify(updated));
+        localStorage.setItem(cartKey, JSON.stringify(updated));
         window.dispatchEvent(new Event('cart-updated'));
     };
 
     const removeItem = (sku: string) => {
         const updated = cartItems.filter(item => item.sku !== sku);
         setCartItems(updated);
-        localStorage.setItem('rbotics_cart', JSON.stringify(updated));
+        localStorage.setItem(cartKey, JSON.stringify(updated));
         window.dispatchEvent(new Event('cart-updated'));
     };
 
@@ -134,7 +135,7 @@ const CartPage: React.FC<CartPageProps> = ({ onClose }) => {
         }
 
         // Clear cart
-        localStorage.removeItem('rbotics_cart');
+        localStorage.removeItem(cartKey);
         setCartItems([]);
         window.dispatchEvent(new Event('cart-updated'));
 
@@ -329,13 +330,18 @@ const CartPage: React.FC<CartPageProps> = ({ onClose }) => {
                                                         <h6 className="fw-bold text-dark mb-1 small" style={{ lineHeight: '1.3' }}>
                                                             {item.name}
                                                         </h6>
-                                                        <div className="d-flex align-items-center gap-2 small">
+                                                        <div className="d-flex align-items-center gap-2 small mb-1">
                                                             <span className="text-muted" style={{ fontSize: '0.75rem' }}>SKU: {item.sku}</span>
                                                             <span className="text-primary fw-bold">₹{item.price.toLocaleString('en-IN')}</span>
-                                                            <span className={`badge ${liveStock > 0 ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'}`} style={{ fontSize: '0.68rem' }}>
-                                                                {liveStock > 0 ? `${liveStock} in stock` : 'Out of stock'}
+                                                            <span className={`badge ${liveStock >= item.quantity ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'}`} style={{ fontSize: '0.68rem' }}>
+                                                                {liveStock >= item.quantity ? 'Available' : liveStock > 0 ? `${liveStock} in stock` : 'Out of stock'}
                                                             </span>
                                                         </div>
+                                                        {liveStock < item.quantity && (
+                                                            <div className="text-danger small mt-1" style={{ fontSize: '0.75rem', fontWeight: 600 }}>
+                                                                <i className="fas fa-exclamation-circle me-1"></i> Component not available in requested quantity
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </div>
 
@@ -470,13 +476,6 @@ const CartPage: React.FC<CartPageProps> = ({ onClose }) => {
                                     <div className="mb-3">
                                         <label className="form-label text-muted small mb-1 fw-bold">Payment Method</label>
                                         <div className="d-flex gap-2">
-                                            <button
-                                                type="button"
-                                                className={`btn btn-sm rounded-3 flex-grow-1 ${paymentMethod === 'cod' ? 'btn-primary' : 'btn-outline-secondary bg-white'}`}
-                                                onClick={() => setPaymentMethod('cod')}
-                                            >
-                                                <i className="fas fa-money-bill-wave me-1"></i> COD
-                                            </button>
                                             <button
                                                 type="button"
                                                 className={`btn btn-sm rounded-3 flex-grow-1 ${paymentMethod === 'upi' ? 'btn-primary' : 'btn-outline-secondary bg-white'}`}

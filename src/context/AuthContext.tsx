@@ -15,9 +15,11 @@ interface AuthContextType {
     currentUser: AuthUser | null;
     isLoggedIn: boolean;
     isAdmin: boolean;
-    login: (emailOrMobile: string, password: string) => { success: boolean; message: string };
-    register: (name: string, email: string, mobile: string, password: string) => { success: boolean; message: string };
-    logout: () => void;
+    login: (emailOrMobile: string, password: string) => Promise<{ success: boolean; message: string }>;
+    register: (name: string, email: string, mobile: string, password?: string) => Promise<{ success: boolean; message: string }>;
+    verifyOtp: (email: string, otp: string) => Promise<{ success: boolean; message: string }>;
+    setPassword: (email: string, password: string) => Promise<{ success: boolean; message: string }>;
+    logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -66,71 +68,70 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.setItem('rbotics_users', JSON.stringify(publicUsers));
     };
 
-    const login = (emailOrMobile: string, password: string): { success: boolean; message: string } => {
-        // Check admin by email
-        if (emailOrMobile === ADMIN_CREDENTIALS.email && password === ADMIN_CREDENTIALS.password) {
-            const adminUser: AuthUser = {
-                id: ADMIN_CREDENTIALS.id,
-                name: ADMIN_CREDENTIALS.name,
-                email: ADMIN_CREDENTIALS.email,
-                mobile: '',
-                role: 'admin',
-                joinedAt: ADMIN_CREDENTIALS.joinedAt,
-            };
-            setCurrentUser(adminUser);
-            return { success: true, message: 'Admin login successful!' };
+    const login = async (emailOrMobile: string, password: string): Promise<{ success: boolean; message: string }> => {
+        try {
+            const { default: api, setAccessToken } = await import('../api');
+            const res = await api.post('/auth/login', { loginId: emailOrMobile, password });
+            if (res.data.success) {
+                setAccessToken(res.data.accessToken);
+                setCurrentUser(res.data.user);
+                return { success: true, message: 'Login successful!' };
+            }
+            return { success: false, message: 'Invalid credentials' };
+        } catch (error: any) {
+            return { success: false, message: error.response?.data?.message || 'Server error' };
         }
-
-        // Check registered users by email OR mobile
-        const stored = localStorage.getItem('rbotics_users_with_pw');
-        const users: (AuthUser & { password: string })[] = stored ? JSON.parse(stored) : [];
-        const found = users.find(
-            u => (u.email === emailOrMobile || u.mobile === emailOrMobile) && u.password === password
-        );
-        if (found) {
-            const { password: _pw, ...userWithoutPw } = found;
-            void _pw;
-            setCurrentUser(userWithoutPw);
-            return { success: true, message: 'Login successful!' };
-        }
-
-        return { success: false, message: 'Invalid email / mobile or password.' };
     };
 
-    const register = (name: string, email: string, mobile: string, password: string): { success: boolean; message: string } => {
-        if (!email && !mobile) {
-            return { success: false, message: 'Please provide at least an email or mobile number.' };
+    const register = async (name: string, email: string, mobile: string, password: string): Promise<{ success: boolean; message: string }> => {
+        try {
+            const { default: api } = await import('../api');
+            const res = await api.post('/auth/register', { name, email, phone: mobile, password });
+            if (res.data.success) {
+                return { success: true, message: res.data.message };
+            }
+            return { success: false, message: 'Registration failed' };
+        } catch (error: any) {
+             return { success: false, message: error.response?.data?.message || 'Server error' };
         }
-        if (email && email === ADMIN_CREDENTIALS.email) {
-            return { success: false, message: 'This email is reserved.' };
-        }
-        const stored = localStorage.getItem('rbotics_users_with_pw');
-        const users: (AuthUser & { password: string })[] = stored ? JSON.parse(stored) : [];
-
-        if (email && users.find(u => u.email === email)) {
-            return { success: false, message: 'Email already registered.' };
-        }
-        if (mobile && users.find(u => u.mobile === mobile)) {
-            return { success: false, message: 'Mobile number already registered.' };
-        }
-
-        const newUser: AuthUser & { password: string } = {
-            id: `user-${Date.now()}`,
-            name,
-            email,
-            mobile,
-            password,
-            role: 'user',
-            joinedAt: new Date().toISOString(),
-        };
-        saveUser(newUser);
-        const { password: _pw, ...userWithoutPw } = newUser;
-        void _pw;
-        setCurrentUser(userWithoutPw);
-        return { success: true, message: 'Account created successfully!' };
     };
 
-    const logout = () => {
+    const verifyOtp = async (email: string, otp: string): Promise<{ success: boolean; message: string }> => {
+        try {
+            const { default: api } = await import('../api');
+            const res = await api.post('/auth/verify-otp', { email, otp });
+            if (res.data.success) {
+                return { success: true, message: res.data.message };
+            }
+            return { success: false, message: 'Verification failed' };
+        } catch (error: any) {
+             return { success: false, message: error.response?.data?.message || 'Server error' };
+        }
+    };
+
+    const setPassword = async (email: string, password: string): Promise<{ success: boolean; message: string }> => {
+        try {
+            const { default: api, setAccessToken } = await import('../api');
+            const res = await api.post('/auth/set-password', { email, password });
+            if (res.data.success) {
+                setAccessToken(res.data.accessToken);
+                setCurrentUser(res.data.user);
+                return { success: true, message: res.data.message };
+            }
+            return { success: false, message: 'Failed to set password' };
+        } catch (error: any) {
+             return { success: false, message: error.response?.data?.message || 'Server error' };
+        }
+    };
+
+    const logout = async () => {
+        try {
+            const { default: api, setAccessToken } = await import('../api');
+            await api.post('/auth/logout');
+            setAccessToken(null);
+        } catch (e) {
+            // ignore
+        }
         setCurrentUser(null);
     };
 
@@ -141,6 +142,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             isAdmin: currentUser?.role === 'admin',
             login,
             register,
+            verifyOtp,
+            setPassword,
             logout,
         }}>
             {children}
