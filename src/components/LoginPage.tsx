@@ -7,16 +7,12 @@ interface LoginPageProps {
 }
 
 const LoginPage: React.FC<LoginPageProps> = ({ onClose, onSuccess }) => {
-    const { login, register, verifyOtp, setPassword } = useAuth();
-    const [mode, setMode] = useState<'login' | 'register' | 'forgot_pwd' | 'verify_otp' | 'set_password'>('login');
+    const { login, register } = useAuth();
+    const [mode, setMode] = useState<'login' | 'register' | 'forgot_pwd'>('login');
 
     // Login: can enter email or mobile
     const [loginId, setLoginId] = useState('');
     const [loginPassword, setLoginPassword] = useState('');
-    
-    // OTP Verification
-    const [otpCode, setOtpCode] = useState('');
-    const [verifyEmail, setVerifyEmail] = useState('');
 
     // Register fields
     const [regName, setRegName] = useState('');
@@ -58,37 +54,8 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose, onSuccess }) => {
                 setError(res.message);
             }
         } else if (mode === 'register') {
-            // Register validations
-            const res = await register(regName, regEmail, regMobile);
-            if (res.success) {
-                setSuccess('OTP sent to email. Please verify.');
-                setVerifyEmail(regEmail);
-                setTimeout(() => {
-                    setMode('verify_otp');
-                    clearErrors();
-                }, 1500);
-            } else {
-                setError(res.message);
-            }
-        } else if (mode === 'verify_otp') {
-            if (otpCode.length < 6) {
-                setError('Invalid OTP code.');
-                setLoading(false);
-                return;
-            }
-            const res = await verifyOtp(verifyEmail, otpCode);
-            if (res.success) {
-                setSuccess('Account verified successfully! You can now set your password.');
-                setTimeout(() => {
-                    setMode('set_password');
-                    clearErrors();
-                }, 1500);
-            } else {
-                setError(res.message);
-            }
-        } else if (mode === 'set_password') {
-            if (regPassword !== regConfirm) {
-                setError('Passwords do not match.');
+            if (!regEmail.trim() && !regMobile.trim()) {
+                setError('Please enter an email address or mobile number.');
                 setLoading(false);
                 return;
             }
@@ -97,13 +64,18 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose, onSuccess }) => {
                 setLoading(false);
                 return;
             }
-            const res = await setPassword(verifyEmail, regPassword);
+            if (regPassword !== regConfirm) {
+                setError('Passwords do not match.');
+                setLoading(false);
+                return;
+            }
+            const res = await register(regName.trim(), regEmail.trim(), regMobile.trim(), regPassword);
             if (res.success) {
-                setSuccess('Password set successfully! Logging in...');
+                setSuccess(res.message);
                 setTimeout(() => {
                     onClose?.();
                     onSuccess?.();
-                }, 1500);
+                }, 800);
             } else {
                 setError(res.message);
             }
@@ -164,10 +136,10 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose, onSuccess }) => {
                         <i className="fas fa-robot" style={{ color: '#fff', fontSize: '1.5rem' }}></i>
                     </div>
                     <h2 style={{ color: '#e2e8f0', fontSize: '1.5rem', marginBottom: '0.3rem', fontFamily: 'Montserrat, sans-serif' }}>
-                        {mode === 'login' ? 'Welcome Back' : mode === 'register' ? 'Create Account' : mode === 'verify_otp' ? 'Verify OTP' : mode === 'set_password' ? 'Set Password' : 'Reset Password'}
+                        {mode === 'login' ? 'Welcome Back' : mode === 'register' ? 'Create Account' : 'Reset Password'}
                     </h2>
                     <p style={{ color: '#64748b', fontSize: '0.875rem' }}>
-                        {mode === 'login' ? 'Sign in to your Rbotics account' : mode === 'register' ? 'Join the Rbotics community' : mode === 'verify_otp' ? 'Verify your email address' : mode === 'set_password' ? 'Secure your account' : 'Enter your email to reset password'}
+                        {mode === 'login' ? 'Sign in to your Rbotics account' : mode === 'register' ? 'Join the Rbotics community' : 'Enter your email to reset password'}
                     </p>
                 </div>
 
@@ -306,38 +278,17 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose, onSuccess }) => {
                                 />
                             </Field>
 
-                            {/* End Register */}
-                        </>
-                    )}
-
-                    {/* ── VERIFY EMAIL OTP ──────────────────────── */}
-                    {mode === 'verify_otp' && (
-                        <>
-                            <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-                                <p style={{ color: '#94a3b8', fontSize: '0.9rem', marginBottom: '0.5rem' }}>
-                                    We sent a 6-digit OTP to <strong>{verifyEmail}</strong>.
-                                </p>
-                            </div>
-                            <Field label="OTP Code" icon="fa-shield-alt" last>
+                            {/* Mobile */}
+                            <Field label="Mobile Number (optional)" icon="fa-phone">
                                 <input
-                                    type="text" required
-                                    value={otpCode}
-                                    onChange={e => { setOtpCode(e.target.value); clearErrors(); }}
-                                    placeholder="123456"
+                                    type="tel"
+                                    value={regMobile}
+                                    onChange={e => { setRegMobile(e.target.value); clearErrors(); }}
+                                    placeholder="+91 9876543210"
                                     style={inputStyle}
                                 />
                             </Field>
-                        </>
-                    )}
 
-                    {/* ── SET PASSWORD ──────────────────────────── */}
-                    {mode === 'set_password' && (
-                        <>
-                            <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-                                <p style={{ color: '#94a3b8', fontSize: '0.9rem', marginBottom: '0.5rem' }}>
-                                    Secure your account for <strong>{verifyEmail}</strong>.
-                                </p>
-                            </div>
                             <Field label="Password" icon="fa-lock">
                                 <input
                                     type="password" required
@@ -359,7 +310,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose, onSuccess }) => {
                         </>
                     )}
 
-                    {(mode === 'login' || mode === 'register' || mode === 'verify_otp' || mode === 'set_password') && (
+                    {(mode === 'login' || mode === 'register') && (
                         <button
                             type="submit"
                             disabled={loading}
@@ -377,7 +328,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose, onSuccess }) => {
                         >
                             {loading
                                 ? <><span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing…</>
-                                : <>{mode === 'login' ? <><i className="fas fa-sign-in-alt"></i> Sign In</> : mode === 'verify_otp' ? <><i className="fas fa-check-circle"></i> Verify</> : mode === 'set_password' ? <><i className="fas fa-lock"></i> Set Password</> : <><i className="fas fa-paper-plane"></i> Send OTP</>}</>
+                                : <>{mode === 'login' ? <><i className="fas fa-sign-in-alt"></i> Sign In</> : <><i className="fas fa-user-plus"></i> Create Account</>}</>
                             }
                         </button>
                     )}

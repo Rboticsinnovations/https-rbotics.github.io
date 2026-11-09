@@ -1,177 +1,157 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import mongoose from 'mongoose';
 import { User } from '../models/User';
-import sgMail from '@sendgrid/mail';
 
-sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
+const DEFAULT_ADMIN_ID = 'default-admin';
 
-const generateAccessToken = (userId: string, role: string) => {
-    return jwt.sign({ userId, role }, process.env.ACCESS_TOKEN_SECRET!, { expiresIn: process.env.ACCESS_TOKEN_EXPIRY || '15m' });
+type PublicUser = { id: string; email?: string | null; name?: string | null; role: string };
+
+const generateAccessToken = (userId: string, role: string) =>
+    jwt.sign({ userId, role }, process.env.ACCESS_TOKEN_SECRET!, {
+        expiresIn: (process.env.ACCESS_TOKEN_EXPIRY || '15m') as jwt.SignOptions['expiresIn'],
+    });
+
+const generateRefreshToken = (userId: string, role: string) =>
+    jwt.sign({ userId, role }, process.env.REFRESH_TOKEN_SECRET!, {
+        expiresIn: (process.env.REFRESH_TOKEN_EXPIRY || '7d') as jwt.SignOptions['expiresIn'],
+    });
+
+const cookieOptions = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict' as const,
 };
 
-const generateRefreshToken = (userId: string, role: string) => {
-    return jwt.sign({ userId, role }, process.env.REFRESH_TOKEN_SECRET!, { expiresIn: process.env.REFRESH_TOKEN_EXPIRY || '7d' });
+const dbReady = () => mongoose.connection.readyState === 1;
+
+/** Default admin account configured via env (works even when MongoDB is unavailable). */
+const getDefaultAdmin = () => {
+    const email = process.env.DEFAULT_ADMIN_EMAIL?.trim().toLowerCase();
+    const password = process.env.DEFAULT_ADMIN_PASSWORD;
+    if (!email || !password) return null;
+    return { email, password, name: process.env.DEFAULT_ADMIN_NAME || 'Admin' };
+};
+
+/** Issue an access token, set the refresh-token cookie, and send the session response. */
+const sendSession = (res: Response, user: PublicUser, refreshToken: string, status = 200, message?: string) => {
+    const accessToken = generateAccessToken(user.id, user.role);
+    res.cookie('jwt', refreshToken, { ...cookieOptions, maxAge: 7 * 24 * 60 * 60 * 1000 });
+    res.status(status).json({ success: true, message, accessToken, user });
 };
 
 export const register = async (req: Request, res: Response) => {
     try {
-        const { email, phone, password, name } = req.body;
-        
-        const existingUser = await User.findOne({ $or: [{ email }, { phone }] });
-        if (existingUser) {
+        const { password, name } = req.body;
+        // Treat empty strings as "not provided" so they don't collide in lookups / unique indexes
+        const email = req.body.email?.trim().toLowerCase() || undefined;
+        const phone = req.body.phone?.trim() || undefined;
+
+        if (!email && !phone) {
+            return res.status(400).json({ success: false, message: 'Email or phone is required' });
+        }
+        if (!password || password.length < 6) {
+            return res.status(400).json({ success: false, message: 'Password must be at least 6 characters' });
+        }
+        if (email && email === getDefaultAdmin()?.email) {
+            return res.status(400).json({ success: false, message: 'User already exists' });
+        }
+        if (!dbReady()) {
+            return res.status(503).json({ success: false, message: 'Database unavailable. Please try again later.' });
+        }
+
+        const conditions = [email && { email }, phone && { phone }].filter(Boolean) as object[];
+        if (await User.findOne({ $or: conditions })) {
             return res.status(400).json({ success: false, message: 'User already exists' });
         }
 
-        const hashedPassword = password ? await bcrypt.hash(password, 10) : undefined;
-        
-        const otp = Math.floor(100000 + Math.random() * 900000).toString(); // 6 digit OTP
-        const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-
-        const user = new User({
-            email,
-            phone,
-            password: hashedPassword,
-            name,
-            otp,
-            otpExpiry,
-            isVerified: false
-        });
-
-        await user.save();
-
-        if (email) {
-            const msg = {
-                to: email,
-                from: process.env.SENDGRID_FROM_EMAIL!,
-                subject: 'Rbotics Innovations - Verify your account',
-                text: `Your OTP for registration is ${otp}. It is valid for 10 minutes.`,
-                html: `<strong>Your OTP for registration is ${otp}</strong>. It is valid for 10 minutes.`,
-            };
-            try {
-                await sgMail.send(msg);
-            } catch (err) {
-                console.error('SendGrid error:', err);
-            }
-        }
-
-        res.status(201).json({ success: true, message: 'OTP sent to email. Please verify.' });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ success: false, message: 'Server error' });
-    }
-};
-
-export const verifyOtp = async (req: Request, res: Response) => {
-    try {
-        const { email, otp } = req.body;
-        const user = await User.findOne({ email });
-
-        if (!user) {
-            return res.status(404).json({ success: false, message: 'User not found' });
-        }
-
-        if (user.isVerified) {
-            return res.status(400).json({ success: false, message: 'User already verified' });
-        }
-
-        if (user.otp !== otp || !user.otpExpiry || user.otpExpiry < new Date()) {
-            return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
-        }
-
-        user.isVerified = true;
-        user.otp = undefined;
-        user.otpExpiry = undefined;
-        await user.save();
-
-        res.status(200).json({ success: true, message: 'Account verified successfully. You can now set your password.' });
-    } catch (error) {
-        res.status(500).json({ success: false, message: 'Server error' });
-    }
-};
-
-export const setPassword = async (req: Request, res: Response) => {
-    try {
-        const { email, password } = req.body;
-        const user = await User.findOne({ email });
-
-        if (!user) return res.status(404).json({ success: false, message: 'User not found' });
-        if (!user.isVerified) return res.status(400).json({ success: false, message: 'User must be verified first' });
-
-        user.password = await bcrypt.hash(password, 10);
-        
-        const accessToken = generateAccessToken(user.id, user.role);
+        const user = new User({ email, phone, name, password: await bcrypt.hash(password, 10) });
         const refreshToken = generateRefreshToken(user.id, user.role);
-
         user.refreshToken = refreshToken;
         await user.save();
 
-        res.cookie('jwt', refreshToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'strict', maxAge: 7 * 24 * 60 * 60 * 1000 });
-        
-        res.status(200).json({ success: true, message: 'Password set successfully!', accessToken, user: { id: user.id, email: user.email, name: user.name, role: user.role } });
+        sendSession(res, { id: user.id, email: user.email, name: user.name, role: user.role }, refreshToken, 201, 'Account created successfully!');
     } catch (error) {
+        console.error('Register error:', error);
         res.status(500).json({ success: false, message: 'Server error' });
     }
 };
 
 export const login = async (req: Request, res: Response) => {
     try {
-        const { loginId, password } = req.body;
-        
-        const user = await User.findOne({ $or: [{ email: loginId }, { phone: loginId }] });
-        if (!user) {
+        const loginId: string = req.body.loginId?.trim() || '';
+        const { password } = req.body;
+        if (!loginId || !password) {
+            return res.status(400).json({ success: false, message: 'Login ID and password are required' });
+        }
+
+        // Default admin (from env) — checked before the database
+        const admin = getDefaultAdmin();
+        if (admin && loginId.toLowerCase() === admin.email) {
+            if (password !== admin.password) {
+                return res.status(401).json({ success: false, message: 'Invalid credentials' });
+            }
+            return sendSession(
+                res,
+                { id: DEFAULT_ADMIN_ID, email: admin.email, name: admin.name, role: 'admin' },
+                generateRefreshToken(DEFAULT_ADMIN_ID, 'admin')
+            );
+        }
+
+        if (!dbReady()) {
+            return res.status(503).json({ success: false, message: 'Database unavailable. Please try again later.' });
+        }
+
+        const user = await User.findOne({ $or: [{ email: loginId.toLowerCase() }, { phone: loginId }] });
+        if (!user || !user.password || !(await bcrypt.compare(password, user.password))) {
             return res.status(401).json({ success: false, message: 'Invalid credentials' });
         }
 
-        if (user.email && !user.isVerified) {
-            return res.status(401).json({ success: false, message: 'Please verify your email first (OTP).' });
-        }
-
-        if (password && user.password) {
-            const isMatch = await bcrypt.compare(password, user.password);
-            if (!isMatch) return res.status(401).json({ success: false, message: 'Invalid credentials' });
-        }
-
-        const accessToken = generateAccessToken(user.id, user.role);
         const refreshToken = generateRefreshToken(user.id, user.role);
-
         user.refreshToken = refreshToken;
         await user.save();
 
-        res.cookie('jwt', refreshToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'strict', maxAge: 7 * 24 * 60 * 60 * 1000 });
-        
-        res.json({ success: true, accessToken, user: { id: user.id, email: user.email, name: user.name, role: user.role } });
+        sendSession(res, { id: user.id, email: user.email, name: user.name, role: user.role }, refreshToken);
     } catch (error) {
+        console.error('Login error:', error);
         res.status(500).json({ success: false, message: 'Server error' });
     }
 };
 
 export const refreshToken = async (req: Request, res: Response) => {
-    const cookies = req.cookies;
-    if (!cookies?.jwt) return res.sendStatus(401);
-    
-    const refreshToken = cookies.jwt;
-    const user = await User.findOne({ refreshToken });
-    if (!user) return res.sendStatus(403);
+    try {
+        const token = req.cookies?.jwt;
+        if (!token) return res.sendStatus(401);
 
-    jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET!, (err: any, decoded: any) => {
-        if (err || user.id !== decoded.userId) return res.sendStatus(403);
-        const accessToken = generateAccessToken(user.id, user.role);
-        res.json({ accessToken });
-    });
+        let decoded: any;
+        try {
+            decoded = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET!);
+        } catch {
+            return res.sendStatus(403);
+        }
+
+        if (decoded.userId === DEFAULT_ADMIN_ID) {
+            if (!getDefaultAdmin()) return res.sendStatus(403);
+            return res.json({ accessToken: generateAccessToken(DEFAULT_ADMIN_ID, 'admin') });
+        }
+
+        if (!dbReady()) return res.sendStatus(503);
+        const user = await User.findOne({ refreshToken: token });
+        if (!user || user.id !== decoded.userId) return res.sendStatus(403);
+
+        res.json({ accessToken: generateAccessToken(user.id, user.role) });
+    } catch (error) {
+        console.error('Refresh error:', error);
+        res.sendStatus(500);
+    }
 };
 
 export const logout = async (req: Request, res: Response) => {
-    const cookies = req.cookies;
-    if (!cookies?.jwt) return res.sendStatus(204);
-    
-    const refreshToken = cookies.jwt;
-    const user = await User.findOne({ refreshToken });
-    if (user) {
-        user.refreshToken = '';
-        await user.save();
+    const token = req.cookies?.jwt;
+    if (token && dbReady()) {
+        await User.updateOne({ refreshToken: token }, { $set: { refreshToken: '' } }).catch(() => {});
     }
-    
-    res.clearCookie('jwt', { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'strict' });
+    res.clearCookie('jwt', cookieOptions);
     res.sendStatus(204);
 };

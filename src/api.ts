@@ -1,7 +1,9 @@
 import axios from 'axios';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+
 const api = axios.create({
-    baseURL: 'http://localhost:5000/api', // Backend URL
+    baseURL: API_BASE_URL, // Backend URL
     withCredentials: true, // This allows cookies (like refresh token) to be sent and received
 });
 
@@ -31,7 +33,7 @@ api.interceptors.response.use(
             originalRequest._retry = true;
             try {
                 // Call the refresh endpoint to get a new access token
-                const res = await axios.get('http://localhost:5000/api/auth/refresh', {
+                const res = await axios.get(`${API_BASE_URL}/auth/refresh`, {
                     withCredentials: true,
                 });
                 setAccessToken(res.data.accessToken);
