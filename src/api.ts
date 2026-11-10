@@ -1,6 +1,8 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+// Dev: '/api' is proxied to the local backend by Vite (see vite.config.ts).
+// Production: set VITE_API_URL (e.g. https://api.rbotics.in/api) in frontend/.env.production before building.
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 const api = axios.create({
     baseURL: API_BASE_URL, // Backend URL

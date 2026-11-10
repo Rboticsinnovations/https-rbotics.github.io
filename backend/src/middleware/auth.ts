@@ -13,7 +13,8 @@ export const verifyToken = (req: AuthRequest, res: Response, next: NextFunction)
     if (!token) return res.sendStatus(401);
 
     jwt.verify(token, process.env.ACCESS_TOKEN_SECRET!, (err, decoded) => {
-        if (err) return res.sendStatus(403);
+        // 401 (not 403) so the frontend's interceptor refreshes an expired access token.
+        if (err) return res.sendStatus(401);
         req.user = decoded;
         next();
     });

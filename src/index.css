@@ -89,3 +89,8 @@ h6 {
   height: 2px;
   background-color: #0d6efd;
 }
+/* Hide Edge/IE built-in password reveal so only our eye toggle shows */
+.password-input::-ms-reveal,
+.password-input::-ms-clear {
+  display: none;
+}

@@ -201,12 +201,11 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose, onSuccess }) => {
                                 />
                             </Field>
                             <Field label="Password" icon="fa-lock" last>
-                                <input
-                                    type="password" required
+                                <PasswordInput
                                     value={loginPassword}
-                                    onChange={e => { setLoginPassword(e.target.value); clearErrors(); }}
+                                    onChange={v => { setLoginPassword(v); clearErrors(); }}
                                     placeholder="••••••••"
-                                    style={inputStyle}
+                                    autoComplete="current-password"
                                 />
                             </Field>
                             
@@ -290,21 +289,19 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose, onSuccess }) => {
                             </Field>
 
                             <Field label="Password" icon="fa-lock">
-                                <input
-                                    type="password" required
+                                <PasswordInput
                                     value={regPassword}
-                                    onChange={e => { setRegPassword(e.target.value); clearErrors(); }}
+                                    onChange={v => { setRegPassword(v); clearErrors(); }}
                                     placeholder="Min. 6 characters"
-                                    style={inputStyle}
+                                    autoComplete="new-password"
                                 />
                             </Field>
                             <Field label="Confirm Password" icon="fa-lock" last>
-                                <input
-                                    type="password" required
+                                <PasswordInput
                                     value={regConfirm}
-                                    onChange={e => { setRegConfirm(e.target.value); clearErrors(); }}
+                                    onChange={v => { setRegConfirm(v); clearErrors(); }}
                                     placeholder="Repeat password"
-                                    style={inputStyle}
+                                    autoComplete="new-password"
                                 />
                             </Field>
                         </>
@@ -360,6 +357,46 @@ const Field: React.FC<{ label: string; icon: string; last?: boolean; children: R
         </div>
     </div>
 );
+
+/* ── Password input with show/hide toggle ───────────── */
+const PasswordInput: React.FC<{
+    value: string;
+    onChange: (value: string) => void;
+    placeholder?: string;
+    autoComplete?: string;
+}> = ({ value, onChange, placeholder, autoComplete }) => {
+    const [visible, setVisible] = useState(false);
+    return (
+        <>
+            <input
+                type={visible ? 'text' : 'password'}
+                required
+                value={value}
+                onChange={e => onChange(e.target.value)}
+                placeholder={placeholder}
+                autoComplete={autoComplete}
+                className="password-input"
+                style={{ ...inputStyle, paddingRight: '2.8rem' }}
+            />
+            <button
+                type="button"
+                onClick={() => setVisible(v => !v)}
+                aria-label={visible ? 'Hide password' : 'Show password'}
+                title={visible ? 'Hide password' : 'Show password'}
+                style={{
+                    position: 'absolute', right: '0.5rem', top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none', border: 'none',
+                    color: visible ? '#3b82f6' : '#64748b',
+                    cursor: 'pointer', padding: '0.4rem 0.5rem',
+                    lineHeight: 1,
+                }}
+            >
+                <i className={`fas ${visible ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+            </button>
+        </>
+    );
+};
 
 const inputStyle: React.CSSProperties = {
     width: '100%',

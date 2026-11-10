@@ -1,12 +1,8 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
-import { User } from '../models/User';
-
-const DEFAULT_ADMIN_ID = 'default-admin';
-
-type PublicUser = { id: string; email?: string | null; name?: string | null; role: string };
+import { User, toPublicUser, UserDoc } from '../models/User';
 
 const generateAccessToken = (userId: string, role: string) =>
     jwt.sign({ userId, role }, process.env.ACCESS_TOKEN_SECRET!, {
@@ -30,55 +26,60 @@ const cookieOptions = {
     sameSite,
 };
 
-const dbReady = () => mongoose.connection.readyState === 1;
+const SESSION_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
-/** Default admin account configured via env (works even when MongoDB is unavailable). */
-const getDefaultAdmin = () => {
-    const email = process.env.DEFAULT_ADMIN_EMAIL?.trim().toLowerCase();
-    const password = process.env.DEFAULT_ADMIN_PASSWORD;
-    if (!email || !password) return null;
-    return { email, password, name: process.env.DEFAULT_ADMIN_NAME || 'Admin' };
+/** Reject with 503 while MongoDB is not connected. */
+export const requireDb = (_req: Request, res: Response, next: NextFunction) => {
+    if (mongoose.connection.readyState !== 1) {
+        return res.status(503).json({ success: false, message: 'Database unavailable. Please try again later.' });
+    }
+    next();
 };
 
-/** Issue an access token, set the refresh-token cookie, and send the session response. */
-const sendSession = (res: Response, user: PublicUser, refreshToken: string, status = 200, message?: string) => {
-    const accessToken = generateAccessToken(user.id, user.role);
-    res.cookie('jwt', refreshToken, { ...cookieOptions, maxAge: 7 * 24 * 60 * 60 * 1000 });
-    res.status(status).json({ success: true, message, accessToken, user });
+/** Rotate the refresh token, set the cookie, and send the session response. */
+const startSession = async (res: Response, user: UserDoc, status = 200, message?: string) => {
+    const refreshToken = generateRefreshToken(user.id, user.role);
+    user.refreshToken = refreshToken;
+    await user.save();
+
+    res.cookie('jwt', refreshToken, { ...cookieOptions, maxAge: SESSION_MAX_AGE_MS });
+    res.status(status).json({
+        success: true,
+        message,
+        accessToken: generateAccessToken(user.id, user.role),
+        user: toPublicUser(user),
+    });
 };
+
+const isDuplicateKeyError = (err: unknown) => (err as { code?: number })?.code === 11000;
 
 export const register = async (req: Request, res: Response) => {
     try {
-        const { password, name } = req.body;
+        const password: string = req.body.password || '';
+        const name: string = req.body.name?.trim() || undefined;
         // Treat empty strings as "not provided" so they don't collide in lookups / unique indexes
-        const email = req.body.email?.trim().toLowerCase() || undefined;
-        const phone = req.body.phone?.trim() || undefined;
+        const email: string | undefined = req.body.email?.trim().toLowerCase() || undefined;
+        const phone: string | undefined = req.body.phone?.trim() || undefined;
 
         if (!email && !phone) {
-            return res.status(400).json({ success: false, message: 'Email or phone is required' });
+            return res.status(400).json({ success: false, message: 'Email or mobile number is required' });
         }
-        if (!password || password.length < 6) {
+        if (password.length < 6) {
             return res.status(400).json({ success: false, message: 'Password must be at least 6 characters' });
-        }
-        if (email && email === getDefaultAdmin()?.email) {
-            return res.status(400).json({ success: false, message: 'User already exists' });
-        }
-        if (!dbReady()) {
-            return res.status(503).json({ success: false, message: 'Database unavailable. Please try again later.' });
         }
 
         const conditions = [email && { email }, phone && { phone }].filter(Boolean) as object[];
-        if (await User.findOne({ $or: conditions })) {
-            return res.status(400).json({ success: false, message: 'User already exists' });
+        if (await User.exists({ $or: conditions })) {
+            return res.status(409).json({ success: false, message: 'An account with this email or mobile already exists' });
         }
 
-        const user = new User({ email, phone, name, password: await bcrypt.hash(password, 10) });
-        const refreshToken = generateRefreshToken(user.id, user.role);
-        user.refreshToken = refreshToken;
-        await user.save();
-
-        sendSession(res, { id: user.id, email: user.email, name: user.name, role: user.role }, refreshToken, 201, 'Account created successfully!');
+        // New accounts are always 'user'; admin records are created with `npm run create-user ... admin`.
+        const user = new User({ email, phone, name, password: await bcrypt.hash(password, 10), role: 'user' });
+        await startSession(res, user, 201, 'Account created successfully!');
     } catch (error) {
+        if (isDuplicateKeyError(error)) {
+            return res.status(409).json({ success: false, message: 'An account with this email or mobile already exists' });
+        }
         console.error('Register error:', error);
         res.status(500).json({ success: false, message: 'Server error' });
     }
@@ -87,38 +88,18 @@ export const register = async (req: Request, res: Response) => {
 export const login = async (req: Request, res: Response) => {
     try {
         const loginId: string = req.body.loginId?.trim() || '';
-        const { password } = req.body;
+        const password: string = req.body.password || '';
         if (!loginId || !password) {
             return res.status(400).json({ success: false, message: 'Login ID and password are required' });
         }
 
-        // Default admin (from env) — checked before the database
-        const admin = getDefaultAdmin();
-        if (admin && loginId.toLowerCase() === admin.email) {
-            if (password !== admin.password) {
-                return res.status(401).json({ success: false, message: 'Invalid credentials' });
-            }
-            return sendSession(
-                res,
-                { id: DEFAULT_ADMIN_ID, email: admin.email, name: admin.name, role: 'admin' },
-                generateRefreshToken(DEFAULT_ADMIN_ID, 'admin')
-            );
+        const user = await User.findOne({ $or: [{ email: loginId.toLowerCase() }, { phone: loginId }] })
+            .select('+password');
+        if (!user || !(await bcrypt.compare(password, user.password))) {
+            return res.status(401).json({ success: false, message: 'Invalid email/mobile or password' });
         }
 
-        if (!dbReady()) {
-            return res.status(503).json({ success: false, message: 'Database unavailable. Please try again later.' });
-        }
-
-        const user = await User.findOne({ $or: [{ email: loginId.toLowerCase() }, { phone: loginId }] });
-        if (!user || !user.password || !(await bcrypt.compare(password, user.password))) {
-            return res.status(401).json({ success: false, message: 'Invalid credentials' });
-        }
-
-        const refreshToken = generateRefreshToken(user.id, user.role);
-        user.refreshToken = refreshToken;
-        await user.save();
-
-        sendSession(res, { id: user.id, email: user.email, name: user.name, role: user.role }, refreshToken);
+        await startSession(res, user, 200, 'Login successful!');
     } catch (error) {
         console.error('Login error:', error);
         res.status(500).json({ success: false, message: 'Server error' });
@@ -130,23 +111,20 @@ export const refreshToken = async (req: Request, res: Response) => {
         const token = req.cookies?.jwt;
         if (!token) return res.sendStatus(401);
 
-        let decoded: any;
+        let decoded: { userId: string };
         try {
-            decoded = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET!);
+            decoded = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET!) as { userId: string };
         } catch {
-            return res.sendStatus(403);
+            return res.sendStatus(401);
         }
 
-        if (decoded.userId === DEFAULT_ADMIN_ID) {
-            if (!getDefaultAdmin()) return res.sendStatus(403);
-            return res.json({ accessToken: generateAccessToken(DEFAULT_ADMIN_ID, 'admin') });
-        }
+        // Old sessions (e.g. the former env-only admin id) are not valid ObjectIds — force re-login.
+        if (!mongoose.isValidObjectId(decoded.userId)) return res.sendStatus(401);
 
-        if (!dbReady()) return res.sendStatus(503);
-        const user = await User.findOne({ refreshToken: token });
-        if (!user || user.id !== decoded.userId) return res.sendStatus(403);
+        const user = await User.findById(decoded.userId).select('+refreshToken');
+        if (!user || user.refreshToken !== token) return res.sendStatus(401);
 
-        res.json({ accessToken: generateAccessToken(user.id, user.role) });
+        res.json({ accessToken: generateAccessToken(user.id, user.role), user: toPublicUser(user) });
     } catch (error) {
         console.error('Refresh error:', error);
         res.sendStatus(500);
@@ -155,8 +133,8 @@ export const refreshToken = async (req: Request, res: Response) => {
 
 export const logout = async (req: Request, res: Response) => {
     const token = req.cookies?.jwt;
-    if (token && dbReady()) {
-        await User.updateOne({ refreshToken: token }, { $set: { refreshToken: '' } }).catch(() => {});
+    if (token && mongoose.connection.readyState === 1) {
+        await User.updateOne({ refreshToken: token }, { $unset: { refreshToken: 1 } }).catch(() => {});
     }
     res.clearCookie('jwt', cookieOptions);
     res.sendStatus(204);

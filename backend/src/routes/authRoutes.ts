@@ -1,11 +1,11 @@
 import { Router } from 'express';
-import { register, login, refreshToken, logout } from '../controllers/authController';
+import { register, login, refreshToken, logout, requireDb } from '../controllers/authController';
 
 const router = Router();
 
-router.post('/register', register);
-router.post('/login', login);
-router.get('/refresh', refreshToken);
+router.post('/register', requireDb, register);
+router.post('/login', requireDb, login);
+router.get('/refresh', requireDb, refreshToken);
 router.post('/logout', logout);
 
 export default router;

@@ -1,11 +1,13 @@
 /**
- * Create (or update) a user for local/dev login.
+ * Create (or update) a user record in the MongoDB `users` collection.
+ * This is how admin accounts are created — there is no admin configuration in .env.
  *
  * Usage:
- *   npm run create-user -- <email> <password> [name] [role]
- *   npm run create-user -- santosh@rbotics.in "Rbotics@2025" Santosh admin
+ *   npm run create-user -- <email> <password> [name] [user|admin]
+ *   npm run create-user -- admin@example.com "StrongPass123" "Admin Name" admin
  *
- * If the user already exists, the password is reset.
+ * The password is stored as a bcrypt hash. If the user already exists,
+ * its password, name and role are updated.
  */
 import 'dotenv/config';
 import mongoose from 'mongoose';
@@ -33,7 +35,7 @@ const main = async () => {
         {
             $set: { password: hashed, name, role },
         },
-        { upsert: true, new: true, setDefaultsOnInsert: true }
+        { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
     );
 
     console.log(`User ready: ${user.email} (role: ${user.role})`);

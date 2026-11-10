@@ -36,6 +36,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     }, [currentUser]);
 
+    // api.ts fires this when the session can't be refreshed (expired/invalid) — sign the user out.
+    useEffect(() => {
+        const handleForcedLogout = () => setCurrentUser(null);
+        window.addEventListener('auth-logout', handleForcedLogout);
+        return () => window.removeEventListener('auth-logout', handleForcedLogout);
+    }, []);
+
     const login = async (emailOrMobile: string, password: string): Promise<{ success: boolean; message: string }> => {
         try {
             const { default: api, setAccessToken } = await import('../api');

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import type { AuthUser } from '../context/AuthContext';
+import { isAxiosError } from 'axios';
+import api from '../api';
 import {
     ALLOWED_CATEGORIES,
     getProductsCatalog,
@@ -21,14 +23,13 @@ interface ContactSubmission {
     submittedAt: string;
 }
 
+/** Server-provided error message from an axios error, or a fallback. */
+const apiErrorMessage = (err: unknown, fallback: string): string =>
+    (isAxiosError(err) && (err.response?.data as { message?: string } | undefined)?.message) || fallback;
+
 const AdminDashboard: React.FC = () => {
     const { currentUser, logout } = useAuth();
     const [activeTab, setActiveTab] = useState<'products' | 'users' | 'contacts' | 'orders'>('products');
-
-    const getUsers = (): AuthUser[] => {
-        const stored = localStorage.getItem('rbotics_users');
-        return stored ? JSON.parse(stored) : [];
-    };
 
     const getContacts = (): ContactSubmission[] => {
         const stored = localStorage.getItem('rbotics_contact_submissions');
@@ -43,7 +44,20 @@ const AdminDashboard: React.FC = () => {
         }
     };
 
-    const [users, setUsers] = useState<AuthUser[]>(getUsers);
+    // Registered users come from the MongoDB users collection via the backend (admin only).
+    const [users, setUsers] = useState<AuthUser[]>([]);
+    const [usersError, setUsersError] = useState<string | null>(null);
+
+    const loadUsers = () =>
+        api.get<{ users: AuthUser[] }>('/users').then(
+            res => { setUsers(res.data.users); setUsersError(null); },
+            err => setUsersError(apiErrorMessage(err, 'Could not load users from the server.')),
+        );
+
+    useEffect(() => {
+        loadUsers();
+    }, []);
+
     const [contacts, setContacts] = useState<ContactSubmission[]>(getContacts);
     const [orders, setOrders] = useState<any[]>(getOrders);
     const [catalog, setCatalog] = useState<ProductItem[]>(getProductsCatalog);
@@ -78,7 +92,7 @@ const AdminDashboard: React.FC = () => {
     const [formFeatures, setFormFeatures] = useState('');
 
     const refreshData = () => {
-        setUsers(getUsers());
+        loadUsers();
         setContacts(getContacts());
         setOrders(getOrders());
         setCatalog(getProductsCatalog());
@@ -218,17 +232,16 @@ const AdminDashboard: React.FC = () => {
         showNotification(`Product "${p.name}" is now ${updated.isVisible ? 'Visible' : 'Hidden'}.`);
     };
 
-    const deleteUser = (id: string) => {
-        const updated = users.filter(u => u.id !== id);
-        localStorage.setItem('rbotics_users', JSON.stringify(updated));
-
-        const stored = localStorage.getItem('rbotics_users_with_pw');
-        if (stored) {
-            const withPw = JSON.parse(stored).filter((u: AuthUser) => u.id !== id);
-            localStorage.setItem('rbotics_users_with_pw', JSON.stringify(withPw));
+    const deleteUser = async (id: string) => {
+        const user = users.find(u => u.id === id);
+        if (!window.confirm(`Delete user "${user?.name || user?.email}"? This cannot be undone.`)) return;
+        try {
+            await api.delete(`/users/${id}`);
+            setUsers(prev => prev.filter(u => u.id !== id));
+            showNotification('User deleted from system.');
+        } catch (err) {
+            showNotification(apiErrorMessage(err, 'Failed to delete user.'));
         }
-        setUsers(updated);
-        showNotification('User deleted from system.');
     };
 
     const deleteContact = (id: string) => {
@@ -687,7 +700,12 @@ const AdminDashboard: React.FC = () => {
                         border: '1px solid rgba(99,179,237,0.1)',
                         borderRadius: '16px', overflow: 'hidden',
                     }}>
-                        {users.length === 0 ? (
+                        {usersError ? (
+                            <div style={{ padding: '4rem', textAlign: 'center', color: '#f87171' }}>
+                                <i className="fas fa-exclamation-triangle" style={{ fontSize: '3rem', marginBottom: '1rem', display: 'block' }}></i>
+                                {usersError}
+                            </div>
+                        ) : users.length === 0 ? (
                             <div style={{ padding: '4rem', textAlign: 'center', color: '#475569' }}>
                                 <i className="fas fa-users" style={{ fontSize: '3rem', marginBottom: '1rem', display: 'block' }}></i>
                                 No registered users found.
