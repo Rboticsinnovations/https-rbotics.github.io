@@ -18,10 +18,16 @@ const generateRefreshToken = (userId: string, role: string) =>
         expiresIn: (process.env.REFRESH_TOKEN_EXPIRY || '7d') as jwt.SignOptions['expiresIn'],
     });
 
+// 'strict' works when frontend and backend share a site (e.g. www.rbotics.in + api.rbotics.in).
+// Set COOKIE_SAMESITE=none only if they are on unrelated domains (requires HTTPS).
+const sameSite = (['strict', 'lax', 'none'].includes(process.env.COOKIE_SAMESITE || '')
+    ? process.env.COOKIE_SAMESITE
+    : 'strict') as 'strict' | 'lax' | 'none';
+
 const cookieOptions = {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict' as const,
+    secure: process.env.NODE_ENV === 'production' || sameSite === 'none',
+    sameSite,
 };
 
 const dbReady = () => mongoose.connection.readyState === 1;

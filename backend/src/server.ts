@@ -1,16 +1,21 @@
+// Must be the first import so .env is loaded before any module reads process.env.
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
-import dotenv from 'dotenv';
 import { connectDB } from './config/db';
 import authRoutes from './routes/authRoutes';
 
-dotenv.config();
-
 const app = express();
 
+// FRONTEND_URL may list several origins, comma-separated (e.g. "https://www.rbotics.in,https://rbotics.in").
+const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:5173')
+    .split(',')
+    .map((o) => o.trim())
+    .filter(Boolean);
+
 app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    origin: allowedOrigins,
     credentials: true
 }));
 
