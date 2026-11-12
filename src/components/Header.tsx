@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import logoBg from '../assets/rbotics-logo-removebg.png';
 import { useAuth } from '../context/AuthContext';
 import { ALLOWED_CATEGORIES } from '../data/productsData';
+import HeaderSearch from './HeaderSearch';
 
 interface HeaderProps {
     onLoginClick: () => void;
@@ -91,15 +92,13 @@ const Header: React.FC<HeaderProps> = ({ onLoginClick, onAdminClick, onCartClick
         <header className="fixed-top bg-white shadow-sm">
             <div className="container-fluid px-lg-5 py-2">
                 <div className="d-flex justify-content-between align-items-center">
-                    <Link to="/" className="navbar-brand d-flex align-items-center me-4">
-                        <img src={logoBg} alt="Rbotics Logo" style={{ height: '50px', objectFit: 'contain' }} />
+                    {/* .brand-logo gets smaller on narrow phones (index.css) so the icons stay on screen */}
+                    <Link to="/" className="navbar-brand d-flex align-items-center me-2 me-lg-4">
+                        <img src={logoBg} alt="RBOTICS Innovations logo" className="brand-logo" />
                     </Link>
 
                     <div className="d-none d-lg-block mx-5" style={{ width: '250px' }}>
-                        <div className="input-group bg-light rounded-pill px-3 py-1 border">
-                            <span className="input-group-text bg-transparent border-0 text-muted"><i className="fas fa-search"></i></span>
-                            <input type="text" className="form-control bg-transparent border-0 shadow-none" placeholder="Search..." aria-label="Search" style={{ fontSize: '0.9rem' }} />
-                        </div>
+                        <HeaderSearch />
                     </div>
 
                     <nav className="d-none d-lg-flex gap-5 align-items-center fw-medium text-nowrap flex-grow-1 justify-content-center">
@@ -148,7 +147,7 @@ const Header: React.FC<HeaderProps> = ({ onLoginClick, onAdminClick, onCartClick
                         ))}
                     </nav>
 
-                    <div className="d-flex align-items-center gap-3 ms-4">
+                    <div className="d-flex align-items-center gap-3 ms-2 ms-lg-4 flex-shrink-0">
                         {isAdmin && (
                             <button
                                 onClick={onAdminClick}
@@ -229,7 +228,7 @@ const Header: React.FC<HeaderProps> = ({ onLoginClick, onAdminClick, onCartClick
                         </button>
 
                         <button
-                            className="navbar-toggler d-lg-none border-0 ms-2"
+                            className="navbar-toggler d-lg-none border-0 ms-1 px-1"
                             type="button"
                             onClick={toggleMenu}
                             aria-label="Toggle navigation"
@@ -242,10 +241,7 @@ const Header: React.FC<HeaderProps> = ({ onLoginClick, onAdminClick, onCartClick
                 {isOpen && (
                     <div className="d-lg-none mt-3 border-top pt-3">
                         <div className="mb-3">
-                            <div className="input-group bg-light rounded-pill px-3 py-1 border">
-                                <span className="input-group-text bg-transparent border-0 text-muted"><i className="fas fa-search"></i></span>
-                                <input type="text" className="form-control bg-transparent border-0 shadow-none" placeholder="Search..." aria-label="Search" />
-                            </div>
+                            <HeaderSearch onDone={() => setIsOpen(false)} />
                         </div>
                         <div className="d-flex flex-column gap-3 align-items-center">
                             {navItems.map((item) => (

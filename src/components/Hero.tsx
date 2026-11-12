@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import MotionWrapper from './MotionWrapper';
 import heroBg from '../assets/backgroung-img.jpeg';
 
@@ -7,11 +8,11 @@ const Hero: React.FC = () => {
     return (
         <section id="home" className="d-flex align-items-center justify-content-center text-center text-white position-relative overflow-hidden" style={{
             backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), url(${heroBg})`, // Slightly darker overlay for better text contrast
-            backgroundSize: '100% 100%',
+            backgroundSize: 'cover', // fill without stretching the image
             backgroundPosition: 'center',
             backgroundRepeat: 'no-repeat',
-            height: 'calc(100vh - 56px)',
-            marginTop: '56px'
+            // <main> already sits 76px below the fixed header, so fill the rest of the screen
+            minHeight: 'calc(100vh - 76px)',
         }}>
             {/* Animated Drone (Left to Right) */}
             <motion.div
@@ -82,16 +83,21 @@ const Hero: React.FC = () => {
                 </MotionWrapper>
 
                 <MotionWrapper delay={0.6} direction="up">
-                    <a href="#products" className="btn btn-outline-light btn-lg rounded-pill px-5 py-2 fw-bold shadow-sm" style={{ borderWidth: '2px', letterSpacing: '1px' }}>
+                    <Link to="/products" className="btn btn-outline-light btn-lg rounded-pill px-5 py-2 fw-bold shadow-sm" style={{ borderWidth: '2px', letterSpacing: '1px' }}>
                         DISCOVER OUR TECH
-                    </a>
+                    </Link>
                 </MotionWrapper>
             </div>
 
             <div className="position-absolute bottom-0 start-50 translate-middle-x mb-4" style={{ zIndex: 2 }}>
-                <div className="scroll-indicator animate-bounce">
+                <button
+                    type="button"
+                    className="scroll-indicator animate-bounce btn btn-link p-0 border-0"
+                    aria-label="Scroll to services"
+                    onClick={() => document.getElementById('services')?.scrollIntoView({ behavior: 'smooth' })}
+                >
                     <i className="fas fa-chevron-down fs-2 text-white"></i>
-                </div>
+                </button>
             </div>
         </section>
     );

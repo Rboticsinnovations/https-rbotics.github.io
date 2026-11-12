@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import api, { setAccessToken } from '../api';
 
 export type UserRole = 'admin' | 'user' | null;
 
@@ -18,6 +19,7 @@ interface AuthContextType {
     login: (emailOrMobile: string, password: string) => Promise<{ success: boolean; message: string }>;
     register: (name: string, email: string, mobile: string, password: string) => Promise<{ success: boolean; message: string }>;
     logout: () => Promise<void>;
+    resetPassword: (emailOrMobile: string, newPassword: string, confirmPassword: string) => Promise<{ success: boolean; message: string }>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -45,7 +47,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const login = async (emailOrMobile: string, password: string): Promise<{ success: boolean; message: string }> => {
         try {
-            const { default: api, setAccessToken } = await import('../api');
             const res = await api.post('/auth/login', { loginId: emailOrMobile, password });
             if (res.data.success) {
                 setAccessToken(res.data.accessToken);
@@ -60,7 +61,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const register = async (name: string, email: string, mobile: string, password: string): Promise<{ success: boolean; message: string }> => {
         try {
-            const { default: api, setAccessToken } = await import('../api');
             const res = await api.post('/auth/register', { name, email, phone: mobile, password });
             if (res.data.success) {
                 setAccessToken(res.data.accessToken);
@@ -73,9 +73,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
+    const resetPassword = async (emailOrMobile: string, newPassword: string, confirmPassword: string): Promise<{ success: boolean; message: string }> => {
+        try {
+            const res = await api.post('/auth/reset-password', { loginId: emailOrMobile, newPassword, confirmPassword });
+            return { success: true, message: res.data.message || 'Password updated successfully.' };
+        } catch (error: unknown) {
+            const message = (error as { response?: { data?: { message?: string } } }).response?.data?.message;
+            return { success: false, message: message || 'Cannot reach the server. Is the backend running?' };
+        }
+    };
+
     const logout = async () => {
         try {
-            const { default: api, setAccessToken } = await import('../api');
             await api.post('/auth/logout');
             setAccessToken(null);
         } catch (e) {
@@ -92,6 +101,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             login,
             register,
             logout,
+            resetPassword,
         }}>
             {children}
         </AuthContext.Provider>

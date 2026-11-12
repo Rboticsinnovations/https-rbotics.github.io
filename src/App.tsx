@@ -1,7 +1,7 @@
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 import { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Header from './components/Header';
 import Hero from './components/Hero';
 import Products from './components/Products';
@@ -13,9 +13,23 @@ import LoginPage from './components/LoginPage';
 import AdminDashboard from './components/AdminDashboard';
 import CartPage from './components/CartPage';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { MotionConfig } from 'framer-motion';
+import { ScrollManager, ScrollProgressBar, BackToTopButton } from './components/ScrollManager';
+import { PUBLIC_PAGES } from './data/servicesData';
+import { usePageMeta } from './hooks/usePageMeta';
+
+function ProductsMeta() {
+  const meta = pageMeta('/products');
+  usePageMeta(meta.title, meta.description, '/products');
+  return null;
+}
 import './index.css';
 
+const pageMeta = (path: string) => PUBLIC_PAGES.find(p => p.path === path)!;
+
 function Home() {
+  const meta = pageMeta('/');
+  usePageMeta(meta.title, meta.description, '/');
   return (
     <>
       <Hero />
@@ -94,6 +108,8 @@ function AppContent() {
 
   return (
     <div className="d-flex flex-column min-vh-100">
+      <ScrollManager />
+      <ScrollProgressBar />
       <Header
         onLoginClick={handleLoginClick}
         onAdminClick={handleAdminClick}
@@ -104,15 +120,22 @@ function AppContent() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/products" element={
-            <Products
-              onRequestLogin={handleRequestLoginForCart}
-              onOpenCart={() => setShowCart(true)}
-            />
+            <>
+              <ProductsMeta />
+              <Products
+                onRequestLogin={handleRequestLoginForCart}
+                onOpenCart={() => setShowCart(true)}
+              />
+            </>
           } />
+          {/* Unknown URLs go to the home page */}
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
 
       <Footer />
+
+      <BackToTopButton />
 
       {/* Cart Modal / Page */}
       {showCart && (
@@ -130,9 +153,12 @@ function AppContent() {
 function App() {
   return (
     <Router>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
+      {/* Respect the OS "reduce motion" setting for every framer-motion animation */}
+      <MotionConfig reducedMotion="user">
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
+      </MotionConfig>
     </Router>
   );
 }

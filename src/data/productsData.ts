@@ -659,3 +659,32 @@ export const restockProduct = (sku: string, newStock: number): void => {
     window.dispatchEvent(new Event('inventory-updated'));
     window.dispatchEvent(new Event('products-catalog-updated'));
 };
+
+/**
+ * Search visible products by name, brand, category, sub-category, SKU and description.
+ * Every word in the query must match somewhere; results are ranked so name matches come first.
+ */
+export const searchProducts = (query: string, catalog: ProductItem[] = getProductsCatalog()): ProductItem[] => {
+    const words = query.toLowerCase().trim().split(/\s+/).filter(Boolean);
+    if (words.length === 0) return [];
+
+    const scored: { product: ProductItem; score: number }[] = [];
+    for (const p of catalog) {
+        if (p.isVisible === false) continue;
+        const name = p.name.toLowerCase();
+        const haystack = [p.name, p.brand, p.category, p.subSubCategory, p.sku, p.description]
+            .filter(Boolean)
+            .join(' ')
+            .toLowerCase();
+        if (!words.every(w => haystack.includes(w))) continue;
+
+        let score = 0;
+        for (const w of words) {
+            if (name.startsWith(w)) score += 3;
+            else if (name.includes(w)) score += 2;
+            else score += 1;
+        }
+        scored.push({ product: p, score });
+    }
+    return scored.sort((a, b) => b.score - a.score).map(s => s.product);
+};

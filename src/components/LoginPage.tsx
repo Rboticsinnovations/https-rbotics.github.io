@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { PASSWORD_RULES, isStrongPassword } from '../utils/passwordPolicy';
 
 interface LoginPageProps {
     onClose?: () => void;
@@ -7,7 +8,7 @@ interface LoginPageProps {
 }
 
 const LoginPage: React.FC<LoginPageProps> = ({ onClose, onSuccess }) => {
-    const { login, register } = useAuth();
+    const { login, register, resetPassword } = useAuth();
     const [mode, setMode] = useState<'login' | 'register' | 'forgot_pwd'>('login');
 
     // Login: can enter email or mobile
@@ -20,6 +21,11 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose, onSuccess }) => {
     const [regMobile, setRegMobile] = useState('');
     const [regPassword, setRegPassword] = useState('');
     const [regConfirm, setRegConfirm] = useState('');
+
+    // Forgot password fields
+    const [resetId, setResetId] = useState('');
+    const [resetPassword1, setResetPassword1] = useState('');
+    const [resetConfirm, setResetConfirm] = useState('');
 
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
@@ -34,6 +40,13 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose, onSuccess }) => {
             setLoading(false);
             setSuccess(msg);
         }, 1000);
+    };
+
+    /** Shared check for "new password" + "confirm password" pairs. Returns an error or ''. */
+    const checkNewPassword = (pw: string, confirm: string) => {
+        if (!isStrongPassword(pw)) return 'Password must have at least 8 characters, one capital letter, one number and one symbol.';
+        if (pw !== confirm) return 'Passwords do not match.';
+        return '';
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -59,13 +72,9 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose, onSuccess }) => {
                 setLoading(false);
                 return;
             }
-            if (regPassword.length < 6) {
-                setError('Password must be at least 6 characters.');
-                setLoading(false);
-                return;
-            }
-            if (regPassword !== regConfirm) {
-                setError('Passwords do not match.');
+            const pwError = checkNewPassword(regPassword, regConfirm);
+            if (pwError) {
+                setError(pwError);
                 setLoading(false);
                 return;
             }
@@ -76,6 +85,32 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose, onSuccess }) => {
                     onClose?.();
                     onSuccess?.();
                 }, 800);
+            } else {
+                setError(res.message);
+            }
+        } else if (mode === 'forgot_pwd') {
+            if (!resetId.trim()) {
+                setError('Please enter your email address or mobile number.');
+                setLoading(false);
+                return;
+            }
+            const pwError = checkNewPassword(resetPassword1, resetConfirm);
+            if (pwError) {
+                setError(pwError);
+                setLoading(false);
+                return;
+            }
+            const res = await resetPassword(resetId.trim(), resetPassword1, resetConfirm);
+            if (res.success) {
+                setSuccess(res.message);
+                // Back to sign-in with the account pre-filled
+                setTimeout(() => {
+                    setLoginId(resetId.trim());
+                    setLoginPassword('');
+                    setResetPassword1('');
+                    setResetConfirm('');
+                    setMode('login');
+                }, 1500);
             } else {
                 setError(res.message);
             }
@@ -222,30 +257,40 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose, onSuccess }) => {
                     {/* ── FORGOT PASSWORD ───────────────────────── */}
                     {mode === 'forgot_pwd' && (
                         <>
-                            <Field label="Email Address" icon="fa-envelope" last>
+                            <Field label="Email or Mobile Number" icon="fa-user-circle">
                                 <input
-                                    type="email" required
-                                    placeholder="you@example.com"
+                                    type="text" required
+                                    value={resetId}
+                                    onChange={e => { setResetId(e.target.value); clearErrors(); }}
+                                    placeholder="you@example.com or 9876543210"
+                                    autoComplete="username"
                                     style={inputStyle}
                                 />
                             </Field>
-                            
-                            <button
-                                type="button"
-                                onClick={() => handleMockAction('Password reset link sent to your email.')}
-                                disabled={loading}
-                                style={{
-                                    width: '100%', padding: '0.85rem',
-                                    background: 'linear-gradient(135deg, #3b82f6, #06b6d4)',
-                                    border: 'none', borderRadius: '12px',
-                                    color: '#fff', fontWeight: 600, fontSize: '0.9rem',
-                                    marginBottom: '1rem', cursor: loading ? 'not-allowed' : 'pointer'
-                                }}
-                            >
-                                {loading ? 'Sending...' : 'Send Reset Link'}
-                            </button>
-                            
-                            <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+
+                            <Field label="New Password" icon="fa-lock">
+                                <PasswordInput
+                                    value={resetPassword1}
+                                    onChange={v => { setResetPassword1(v); clearErrors(); }}
+                                    placeholder="Create a strong password"
+                                    autoComplete="new-password"
+                                />
+                            </Field>
+                            <PasswordChecklist password={resetPassword1} />
+
+                            <Field label="Confirm New Password" icon="fa-lock" last>
+                                <PasswordInput
+                                    value={resetConfirm}
+                                    onChange={v => { setResetConfirm(v); clearErrors(); }}
+                                    placeholder="Repeat new password"
+                                    autoComplete="new-password"
+                                />
+                                <MatchHint password={resetPassword1} confirm={resetConfirm} />
+                            </Field>
+
+                            <SubmitButton loading={loading} icon="fa-key" label="Update Password" />
+
+                            <div style={{ textAlign: 'center', margin: '1rem 0 0.5rem' }}>
                                 <button type="button" className="btn btn-link p-0 text-decoration-none" style={{ color: '#94a3b8', fontSize: '0.85rem' }} onClick={() => {setMode('login'); clearErrors();}}>
                                     Back to sign in
                                 </button>
@@ -292,10 +337,11 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose, onSuccess }) => {
                                 <PasswordInput
                                     value={regPassword}
                                     onChange={v => { setRegPassword(v); clearErrors(); }}
-                                    placeholder="Min. 6 characters"
+                                    placeholder="Create a strong password"
                                     autoComplete="new-password"
                                 />
                             </Field>
+                            <PasswordChecklist password={regPassword} />
                             <Field label="Confirm Password" icon="fa-lock" last>
                                 <PasswordInput
                                     value={regConfirm}
@@ -303,32 +349,13 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose, onSuccess }) => {
                                     placeholder="Repeat password"
                                     autoComplete="new-password"
                                 />
+                                <MatchHint password={regPassword} confirm={regConfirm} />
                             </Field>
                         </>
                     )}
 
-                    {(mode === 'login' || mode === 'register') && (
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            style={{
-                                width: '100%', padding: '0.85rem',
-                                background: loading ? '#334155' : 'linear-gradient(135deg, #3b82f6, #06b6d4)',
-                                border: 'none', borderRadius: '12px',
-                                color: '#fff', fontWeight: 700, fontSize: '0.95rem',
-                                cursor: loading ? 'not-allowed' : 'pointer',
-                                boxShadow: loading ? 'none' : '0 8px 24px rgba(59,130,246,0.35)',
-                                transition: 'all 0.3s',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
-                                marginTop: '0.5rem',
-                            }}
-                        >
-                            {loading
-                                ? <><span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing…</>
-                                : <>{mode === 'login' ? <><i className="fas fa-sign-in-alt"></i> Sign In</> : <><i className="fas fa-user-plus"></i> Create Account</>}</>
-                            }
-                        </button>
-                    )}
+                    {mode === 'login' && <SubmitButton loading={loading} icon="fa-sign-in-alt" label="Sign In" />}
+                    {mode === 'register' && <SubmitButton loading={loading} icon="fa-user-plus" label="Create Account" />}
                     
                     {/* Delete account mock */}
                     <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
@@ -338,6 +365,63 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose, onSuccess }) => {
                     </div>
                 </form>
             </div>
+        </div>
+    );
+};
+
+/* ── Submit button (shared by sign in / register / reset) ── */
+const SubmitButton: React.FC<{ loading: boolean; icon: string; label: string }> = ({ loading, icon, label }) => (
+    <button
+        type="submit"
+        disabled={loading}
+        style={{
+            width: '100%', padding: '0.85rem',
+            background: loading ? '#334155' : 'linear-gradient(135deg, #3b82f6, #06b6d4)',
+            border: 'none', borderRadius: '12px',
+            color: '#fff', fontWeight: 700, fontSize: '0.95rem',
+            cursor: loading ? 'not-allowed' : 'pointer',
+            boxShadow: loading ? 'none' : '0 8px 24px rgba(59,130,246,0.35)',
+            transition: 'all 0.3s',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+            marginTop: '0.5rem',
+        }}
+    >
+        {loading
+            ? <><span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing…</>
+            : <><i className={`fas ${icon}`}></i> {label}</>}
+    </button>
+);
+
+/* ── Live password rule checklist ───────────────────── */
+const PasswordChecklist: React.FC<{ password: string }> = ({ password }) => (
+    <ul
+        aria-label="Password requirements"
+        style={{
+            listStyle: 'none', padding: '0.6rem 0.8rem', margin: '-0.4rem 0 1rem',
+            background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',
+            borderRadius: '10px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '0.3rem 0.8rem',
+        }}
+    >
+        {PASSWORD_RULES.map(rule => {
+            const ok = rule.test(password);
+            return (
+                <li key={rule.label} style={{ fontSize: '0.75rem', color: ok ? '#4ade80' : '#64748b', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <i className={`fas ${ok ? 'fa-check-circle' : 'fa-circle'}`} style={{ fontSize: ok ? '0.8rem' : '0.4rem', width: '0.8rem', textAlign: 'center' }}></i>
+                    {rule.label}
+                </li>
+            );
+        })}
+    </ul>
+);
+
+/* ── "Passwords match / don't match" hint under confirm fields ── */
+const MatchHint: React.FC<{ password: string; confirm: string }> = ({ password, confirm }) => {
+    if (!confirm) return null;
+    const ok = password === confirm;
+    return (
+        <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: '0.3rem', fontSize: '0.75rem', color: ok ? '#4ade80' : '#f87171' }}>
+            <i className={`fas ${ok ? 'fa-check' : 'fa-times'} me-1`}></i>
+            {ok ? 'Passwords match' : 'Passwords do not match'}
         </div>
     );
 };

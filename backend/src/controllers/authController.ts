@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
 import { User, toPublicUser, UserDoc } from '../models/User';
+import { validatePassword } from '../utils/passwordPolicy';
 
 const generateAccessToken = (userId: string, role: string) =>
     jwt.sign({ userId, role }, process.env.ACCESS_TOKEN_SECRET!, {
@@ -64,8 +65,9 @@ export const register = async (req: Request, res: Response) => {
         if (!email && !phone) {
             return res.status(400).json({ success: false, message: 'Email or mobile number is required' });
         }
-        if (password.length < 6) {
-            return res.status(400).json({ success: false, message: 'Password must be at least 6 characters' });
+        const passwordError = validatePassword(password);
+        if (passwordError) {
+            return res.status(400).json({ success: false, message: passwordError });
         }
 
         const conditions = [email && { email }, phone && { phone }].filter(Boolean) as object[];
@@ -102,6 +104,48 @@ export const login = async (req: Request, res: Response) => {
         await startSession(res, user, 200, 'Login successful!');
     } catch (error) {
         console.error('Login error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
+/**
+ * POST /api/auth/reset-password  { loginId, newPassword, confirmPassword }
+ * Sets a new (hashed) password for the account with this email or mobile number.
+ * There is no email/SMS verification, so admin accounts are excluded — reset those with
+ * `npm run create-user`. All existing sessions of the account are signed out.
+ */
+export const resetPassword = async (req: Request, res: Response) => {
+    try {
+        const loginId: string = req.body.loginId?.trim() || '';
+        const newPassword: string = req.body.newPassword || '';
+        const confirmPassword: string = req.body.confirmPassword || '';
+
+        if (!loginId || !newPassword || !confirmPassword) {
+            return res.status(400).json({ success: false, message: 'Email/mobile, new password and confirm password are required' });
+        }
+        if (newPassword !== confirmPassword) {
+            return res.status(400).json({ success: false, message: 'New password and confirm password do not match' });
+        }
+        const passwordError = validatePassword(newPassword);
+        if (passwordError) {
+            return res.status(400).json({ success: false, message: passwordError });
+        }
+
+        const user = await User.findOne({ $or: [{ email: loginId.toLowerCase() }, { phone: loginId }] });
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'No account found with this email or mobile number' });
+        }
+        if (user.role === 'admin') {
+            return res.status(403).json({ success: false, message: 'Admin passwords cannot be reset here. Please contact the site administrator.' });
+        }
+
+        user.password = await bcrypt.hash(newPassword, 10);
+        user.refreshToken = undefined; // sign out everywhere
+        await user.save();
+
+        res.json({ success: true, message: 'Password updated successfully. Please sign in with your new password.' });
+    } catch (error) {
+        console.error('Reset password error:', error);
         res.status(500).json({ success: false, message: 'Server error' });
     }
 };

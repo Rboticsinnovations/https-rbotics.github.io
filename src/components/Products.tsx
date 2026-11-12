@@ -4,7 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import {
     ALLOWED_CATEGORIES,
     getProductsCatalog,
-    getProductStock
+    getProductStock,
+    searchProducts
 } from '../data/productsData';
 import type { ProductItem, AllowedCategory } from '../data/productsData';
 import { BatteryVisual } from './BatteryVisual';
@@ -94,7 +95,7 @@ const LI_ION_PACK_TYPES = [
     }
 ];
 
-type ViewStage = 'category_hub' | 'subcat_hub' | 'product_list' | 'product_detail';
+type ViewStage = 'category_hub' | 'subcat_hub' | 'product_list' | 'product_detail' | 'search_results';
 
 const Products: React.FC<ProductsProps> = ({ onRequestLogin, onOpenCart }) => {
     const { isLoggedIn, currentUser } = useAuth();
@@ -135,15 +136,43 @@ const Products: React.FC<ProductsProps> = ({ onRequestLogin, onOpenCart }) => {
     // Toast
     const [toast, setToast] = useState<string | null>(null);
 
-    // Read category from router location state
+    // Header search: full results page for a query (null when not searching)
+    const [headerSearch, setHeaderSearch] = useState<string | null>(null);
+
+    // Read category / search / product from router location state
     useEffect(() => {
+        if (location.state?.search) {
+            setHeaderSearch(location.state.search);
+            setSelectedProduct(null);
+            setCurrentStage('search_results');
+            return;
+        }
+        if (location.state?.productSku) {
+            const product = getProductsCatalog().find(p => p.sku === location.state.productSku);
+            if (product) {
+                setSelectedCategory(product.category as AllowedCategory);
+                if (product.subSubCategory) setSelectedSubSubCat(product.subSubCategory);
+                setSelectedProduct(product);
+                setDetailQty(1);
+                setSelectedThumbnail(0);
+                setActiveTab('desc');
+                setHeaderSearch(null);
+                setCurrentStage('product_detail');
+            }
+            return;
+        }
         if (location.state?.category) {
+            setHeaderSearch(null);
             setSelectedCategory(location.state.category as AllowedCategory);
             setCurrentStage('category_hub');
             if (location.state.category !== 'Batteries, Power Supply and Accessories') {
                 setSelectedSubSubCat(location.state.category);
             }
+            return;
         }
+        // Plain "/products" (e.g. the Products menu link): leave search results for the catalog
+        setHeaderSearch(null);
+        setCurrentStage(stage => (stage === 'search_results' ? 'category_hub' : stage));
     }, [location.state]);
 
     // Sync products whenever admin updates or storage changes
@@ -312,7 +341,7 @@ const Products: React.FC<ProductsProps> = ({ onRequestLogin, onOpenCart }) => {
                                 type="button"
                                 className="btn btn-link p-0 text-decoration-none text-muted small fw-semibold"
                                 onClick={() => {
-                                    setCurrentStage('category_hub');
+                                    setCurrentStage('category_hub'); setHeaderSearch(null);
                                     setSelectedProduct(null);
                                 }}
                             >
@@ -324,7 +353,7 @@ const Products: React.FC<ProductsProps> = ({ onRequestLogin, onOpenCart }) => {
                                 type="button"
                                 className="btn btn-link p-0 text-decoration-none text-muted small fw-semibold"
                                 onClick={() => {
-                                    setCurrentStage('category_hub');
+                                    setCurrentStage('category_hub'); setHeaderSearch(null);
                                     setSelectedProduct(null);
                                 }}
                             >
@@ -338,7 +367,7 @@ const Products: React.FC<ProductsProps> = ({ onRequestLogin, onOpenCart }) => {
                                     type="button"
                                     className="btn btn-link p-0 text-decoration-none text-muted small fw-semibold"
                                     onClick={() => {
-                                        setCurrentStage('category_hub');
+                                        setCurrentStage('category_hub'); setHeaderSearch(null);
                                         setSelectedProduct(null);
                                     }}
                                 >
@@ -1054,6 +1083,91 @@ const Products: React.FC<ProductsProps> = ({ onRequestLogin, onOpenCart }) => {
                 )}
 
                 {/* ================================================================ */}
+                {/* SEARCH RESULTS (from the header search box)                      */}
+                {/* ================================================================ */}
+                {currentStage === 'search_results' && headerSearch && (() => {
+                    const results = searchProducts(headerSearch, products);
+                    return (
+                        <div>
+                            <div className="d-flex flex-wrap align-items-baseline justify-content-between gap-2 mb-4">
+                                <h2 className="fw-bold mb-0" style={{ fontSize: '1.5rem' }}>
+                                    Search results for “{headerSearch}”
+                                </h2>
+                                <span className="text-muted small">
+                                    {results.length} product{results.length === 1 ? '' : 's'} found
+                                </span>
+                            </div>
+
+                            {results.length === 0 ? (
+                                <div className="text-center py-5 bg-light rounded-4 border">
+                                    <i className="fas fa-search fa-3x text-muted opacity-50 mb-3"></i>
+                                    <h5 className="fw-bold">No products match “{headerSearch}”</h5>
+                                    <p className="text-muted small mb-3">Try a different word, a brand, or a category like “battery” or “sensor”.</p>
+                                    <button
+                                        type="button"
+                                        className="btn btn-primary btn-sm rounded-pill px-4"
+                                        onClick={() => { setHeaderSearch(null); setCurrentStage('category_hub'); }}
+                                    >
+                                        Browse all categories
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="row g-3">
+                                    {results.map(p => {
+                                        const liveStock = getProductStock(p.sku);
+                                        const isOutOfStock = liveStock <= 0;
+                                        const openDetail = () => { setSelectedProduct(p); setDetailQty(1); setSelectedThumbnail(0); setCurrentStage('product_detail'); };
+                                        return (
+                                            <div key={p.sku} className="col-sm-6 col-lg-4 col-xl-3">
+                                                <div
+                                                    className="card h-100 border rounded-4 shadow-sm p-3 d-flex flex-column product-search-card"
+                                                    role="button"
+                                                    tabIndex={0}
+                                                    onClick={openDetail}
+                                                    onKeyDown={e => { if (e.key === 'Enter') openDetail(); }}
+                                                >
+                                                    <span className="text-muted mb-2 text-truncate" style={{ fontSize: '0.7rem' }}>
+                                                        {p.subSubCategory || p.category}
+                                                    </span>
+                                                    <div className="py-2 text-center d-flex align-items-center justify-content-center" style={{ minHeight: '120px' }}>
+                                                        {p.imageUrl ? (
+                                                            <img src={p.imageUrl} alt={p.name} style={{ maxHeight: '110px', maxWidth: '100%', objectFit: 'contain' }} className="rounded-2" />
+                                                        ) : (
+                                                            <div className="p-3 bg-light rounded-3 text-primary">
+                                                                <i className="fas fa-microchip fa-3x opacity-75"></i>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <h6 className="fw-bold text-dark small mb-1" style={{ lineHeight: 1.3 }}>{p.name}</h6>
+                                                    <div className="text-muted mb-2" style={{ fontSize: '0.72rem' }}>SKU: {p.sku} | Brand: {p.brand}</div>
+                                                    <div className="mb-2">
+                                                        {isOutOfStock ? (
+                                                            <span className="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill" style={{ fontSize: '0.7rem' }}>Out of Stock</span>
+                                                        ) : (
+                                                            <span className="badge bg-success-subtle text-success border border-success-subtle rounded-pill" style={{ fontSize: '0.7rem' }}>In Stock ({liveStock})</span>
+                                                        )}
+                                                    </div>
+                                                    <div className="fw-bold fs-5 text-dark mb-3 mt-auto">₹ {p.price.toLocaleString('en-IN')}</div>
+                                                    <button
+                                                        type="button"
+                                                        className="btn btn-outline-primary btn-sm rounded-pill fw-semibold w-100"
+                                                        style={{ borderColor: '#4f46e5', color: '#4f46e5' }}
+                                                        disabled={isOutOfStock}
+                                                        onClick={e => handleAddToCart(p, 1, e)}
+                                                    >
+                                                        <i className="fas fa-shopping-cart me-2"></i>{isOutOfStock ? 'Sold Out' : 'Add to Cart'}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    );
+                })()}
+
+                {/* ================================================================ */}
                 {/* STAGE 4: PRODUCT DETAIL PAGE (Matches Image 5)                   */}
                 {/* ================================================================ */}
                 {currentStage === 'product_detail' && selectedProduct && (
@@ -1063,14 +1177,16 @@ const Products: React.FC<ProductsProps> = ({ onRequestLogin, onOpenCart }) => {
                                 type="button"
                                 className="btn btn-link text-primary p-0 text-decoration-none small fw-semibold"
                                 onClick={() => {
-                                    if (selectedCategory === 'Batteries, Power Supply and Accessories') {
+                                    if (headerSearch) {
+                                        setCurrentStage('search_results');
+                                    } else if (selectedCategory === 'Batteries, Power Supply and Accessories') {
                                         setCurrentStage('product_list');
                                     } else {
                                         setCurrentStage('category_hub');
                                     }
                                 }}
                             >
-                                <i className="fas fa-arrow-left me-1"></i> Back to product catalog
+                                <i className="fas fa-arrow-left me-1"></i> {headerSearch ? `Back to results for “${headerSearch}”` : 'Back to product catalog'}
                             </button>
                         </div>
 

@@ -2,8 +2,51 @@ html {
   scroll-behavior: smooth;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* Slide-in animations start off to the side; clip (not hidden) so they never cause
+   sideways scrolling on phones and position: sticky keeps working. */
+html,
+body {
+  overflow-x: clip;
+}
+
 body {
   font-family: 'Roboto', sans-serif;
+}
+
+/* Keep section headings visible below the fixed header when scrolled to. */
+section[id] {
+  scroll-margin-top: 80px;
+}
+
+/* Floating back-to-top button (see ScrollManager.tsx) */
+.back-to-top {
+  position: fixed;
+  right: 1.5rem;
+  bottom: 1.5rem;
+  z-index: 1050;
+  width: 48px;
+  height: 48px;
+  border: none;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3b82f6, #06b6d4);
+  color: #fff;
+  font-size: 1.1rem;
+  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.4);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.back-to-top:focus-visible {
+  outline: 3px solid #93c5fd;
+  outline-offset: 3px;
 }
 
 h1,
@@ -93,4 +136,29 @@ h6 {
 .password-input::-ms-reveal,
 .password-input::-ms-clear {
   display: none;
+}
+
+/* Header search results cards */
+.product-search-card {
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.product-search-card:hover,
+.product-search-card:focus-visible {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Header logo: fixed height so it never collapses; smaller on narrow phones */
+.brand-logo {
+  height: 50px;
+  width: auto;
+  object-fit: contain;
+}
+
+@media (max-width: 420px) {
+  .brand-logo {
+    height: 34px;
+  }
 }
