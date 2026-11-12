@@ -6,7 +6,7 @@ const setMeta = (selector: string, attr: 'content' | 'href', value: string) => {
     if (el) el.setAttribute(attr, value);
 };
 
-/** Canonical URL for a route. Sub-pages end with "/" because GitHub Pages serves them as folders. */
+/** Canonical URL for with "/" bub Pages serves them as folders. */
 export const canonicalUrl = (path: string) => (path === '/' ? `${SITE_URL}/` : `${SITE_URL}${path.replace(/\/$/, '')}/`);
 
 /**
